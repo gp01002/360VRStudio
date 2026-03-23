@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>360 VR Studio · AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090d; --panel:rgba(11,13,19,.97);
+  --sf:rgba(255,255,255,.04); --sfh:rgba(255,255,255,.07);
+  --bd:rgba(255,255,255,.08); --bdb:rgba(255,255,255,.14);
+  --tx:#e8eaf0; --mu:rgba(232,234,240,.42); --mu2:rgba(232,234,240,.22);
+  --blue:#4a90e2; --blue-d:rgba(74,144,226,.11); --blue-g:rgba(74,144,226,.32);
+  --green:#7df9c8; --green-d:rgba(125,249,200,.10); --green-g:rgba(125,249,200,.28);
+  --purple:#a78bfa; --purple-d:rgba(167,139,250,.11); --purple-g:rgba(167,139,250,.32);
+  --orange:#fb923c; --orange-d:rgba(251,146,60,.11); --orange-g:rgba(251,146,60,.28);
+  --pw:314px; --r:10px
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;font-size:13px}
+
+#app{display:flex;height:100vh}
+#stage{flex:1;position:relative;overflow:hidden;min-width:0;background:#050708}
+#vc{display:block;width:100%!important;height:100%!important;cursor:grab;image-rendering:auto}
+#vc.grab{cursor:grabbing}
+
+#eq-wrap{position:absolute;inset:0;background:#050708;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+#eq-wrap.on{display:flex}
+#eq-cv{max-width:100%;max-height:calc(100% - 44px);display:block;border-radius:6px}
+.eq-lbl{font-size:10px;color:var(--mu2);letter-spacing:.14em;text-transform:uppercase}
+
+#empty{position:absolute;inset:0;z-index:3;pointer-events:none;display:flex;align-items:center;justify-content:center}
+#empty.off{opacity:0;transition:.5s;pointer-events:none}
+.e-ring{width:170px;height:170px;border-radius:50%;border:1px dashed rgba(74,144,226,.2);display:flex;align-items:center;justify-content:center;animation:rr 22s linear infinite}
+@keyframes rr{to{transform:rotate(360deg)}}
+.e-in{width:128px;height:128px;border-radius:50%;border:1px solid rgba(74,144,226,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;animation:rr 22s linear infinite reverse}
+.e-ico{font-size:26px;filter:drop-shadow(0 0 10px rgba(74,144,226,.4))}
+.e-lbl{font-family:'Syne',sans-serif;font-size:9px;font-weight:800;letter-spacing:.3em;color:var(--blue)}
+.e-hint{margin-top:14px;font-size:11px;color:var(--mu2);text-align:center;line-height:2}
+
+#vtabs{position:absolute;top:14px;left:14px;display:flex;gap:6px;z-index:10}
+.vtab{padding:5px 13px;border-radius:7px;font-size:11px;cursor:pointer;border:1px solid var(--bd);background:rgba(8,9,13,.76);backdrop-filter:blur(10px);color:var(--mu);transition:.15s;font-weight:500}
+.vtab:hover{color:var(--tx)}
+.vtab.on{border-color:var(--blue);background:var(--blue-d);color:var(--blue)}
+
+#hud{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:7px;pointer-events:none;z-index:10;opacity:0;transition:.3s}
+#hud.on{opacity:1}
+.hpill{padding:5px 13px;background:rgba(8,9,13,.8);backdrop-filter:blur(12px);border:1px solid var(--bd);border-radius:100px;font-size:10px;color:var(--mu);white-space:nowrap}
+.hpill b{color:var(--green);font-weight:500}
+
+#xh{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:.2;z-index:5}
+
+#ai-bar{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue),var(--green));background-size:200% 100%;animation:shim 1.4s linear infinite;z-index:20;display:none}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+#ai-bar.on{display:block}
+
+/* ── PANEL ── */
+#panel{width:var(--pw);flex-shrink:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--bd)}
+.ph{padding:17px 16px 13px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:7px}
+.logo-360{color:var(--blue)} .logo-vr{color:var(--tx)}
+.logo-badge{font-size:9px;padding:2px 8px;border-radius:100px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;letter-spacing:.06em;font-weight:600}
+
+.mbar{margin:11px 13px 0;display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.025);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;flex-shrink:0}
+.mbtn{padding:9px 6px;text-align:center;font-size:11px;cursor:pointer;color:var(--mu);transition:.15s;font-weight:500;border:none;background:none;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'Inter',sans-serif}
+.mbtn:hover{color:var(--tx);background:var(--sfh)}
+.mbtn+.mbtn{border-left:1px solid var(--bd)}
+.mbtn.m-ai{background:var(--purple-d);color:var(--purple)}
+.mbtn.m-vr{background:var(--blue-d);color:var(--blue)}
+
+.pb{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:9px}
+.pb::-webkit-scrollbar{width:3px}
+.pb::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.sec{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--mu2);font-weight:500}
+.div{border:none;border-top:1px solid var(--bd);margin:1px 0}
+
+/* Engine selector */
+.eng-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.eng-btn{padding:8px 5px;border-radius:9px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:.15s;text-align:center;font-family:'Inter',sans-serif}
+.eng-btn:hover{border-color:var(--bdb);background:var(--sfh)}
+.eng-btn.on{border-color:var(--purple);background:var(--purple-d)}
+.eng-ico{font-size:16px;margin-bottom:4px}
+.eng-name{font-size:10px;font-weight:600;color:var(--tx);display:block;margin-bottom:2px}
+.eng-tag{font-size:9px;color:var(--mu2);display:block}
+.eng-btn.on .eng-name{color:var(--purple)}
+.eng-btn.on .eng-tag{color:rgba(167,139,250,.6)}
+
+/* API config area */
+.api-cfg{display:none;background:rgba(255,255,255,.02);border:1px solid var(--bd);border-radius:9px;padding:10px 12px}
+.api-cfg.show{display:block}
+.api-cfg label{font-size:10px;color:var(--mu);display:block;margin-bottom:5px;font-weight:500}
+.api-input{width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s}
+.api-input:focus{border-color:var(--purple)}
+.api-hint{font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.6}
+.api-hint a{color:var(--purple);text-decoration:none}
+.api-hint a:hover{text-decoration:underline}
+
+/* retry badge */
+.retry-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.retry-badge{font-size:9px;padding:2px 8px;border-radius:100px;background:var(--orange-d);border:1px solid var(--orange-g);color:var(--orange);letter-spacing:.06em}
+
+/* upload */
+.uz{position:relative;border:1.5px dashed var(--bd);border-radius:var(--r);padding:20px 10px 16px;text-align:center;cursor:pointer;transition:.2s;overflow:hidden;background:rgba(255,255,255,.018)}
+.uz:hover,.uz.hl{border-color:var(--blue);background:var(--blue-d)}
+.uz.ai-uz:hover,.uz.ai-uz.hl{border-color:var(--purple);background:var(--purple-d)}
+.uz input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;z-index:2}
+.uz-ico{font-size:22px;margin-bottom:6px;pointer-events:none}
+.uz-h{font-size:11px;color:var(--tx);font-weight:500;pointer-events:none;margin-bottom:3px}
+.uz-s{font-size:10px;color:var(--mu);pointer-events:none}
+.cta{display:inline-block;margin-top:9px;padding:4px 14px;border-radius:6px;font-size:10px;font-weight:600;pointer-events:none;letter-spacing:.04em}
+.cta-p{background:var(--purple);color:#fff} .cta-b{background:var(--blue);color:#fff}
+
+.tbox{display:none;border-radius:8px;overflow:hidden;position:relative}
+.tbox.on{display:block}
+.tbox img{width:100%;height:58px;object-fit:cover;display:block}
+.tdim{position:absolute;top:4px;right:5px;background:rgba(0,0,0,.72);color:var(--green);font-size:9px;padding:2px 6px;border-radius:4px}
+.tname{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 8px;font-size:10px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:5px}
+.step{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);transition:.2s}
+.step.active{border-color:var(--purple);background:var(--purple-d)}
+.step.done{border-color:rgba(125,249,200,.2);background:rgba(125,249,200,.05)}
+.step.warn{border-color:rgba(251,146,60,.22);background:rgba(251,146,60,.06)}
+.step.err{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.05)}
+.sico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px}
+.sico.spinning{border:1.5px solid var(--bd);border-top-color:var(--purple);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stxt{font-size:10px;color:var(--mu);flex:1;line-height:1.5}
+.step.active .stxt{color:var(--purple)}
+.step.done .stxt{color:var(--green)}
+.step.warn .stxt{color:var(--orange)}
+.step.err .stxt{color:#f87171}
+
+/* BG preview */
+#bg-prev{display:none;border-radius:6px;overflow:hidden;position:relative;border:1px solid var(--bd)}
+#bg-prev.on{display:block}
+#bg-img{width:100%;height:52px;object-fit:cover;display:block}
+.bg-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);font-size:10px;color:rgba(255,255,255,.65);letter-spacing:.06em}
+
+/* sliders */
+.sr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sl{font-size:11px;color:var(--mu);min-width:60px}
+.sv{font-size:11px;min-width:42px;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.sv-g{color:var(--green)} .sv-p{color:var(--purple)} .sv-b{color:var(--blue)}
+input[type=range]{-webkit-appearance:none;flex:1;height:2px;background:var(--bd);border-radius:1px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green-g);border:2px solid var(--bg);cursor:pointer}
+.sl-p input[type=range]::-webkit-slider-thumb{background:var(--purple);box-shadow:0 0 6px var(--purple-g)}
+.sl-b input[type=range]::-webkit-slider-thumb{background:var(--blue);box-shadow:0 0 6px var(--blue-g)}
+select.sel{width:100%;padding:7px 10px;border-radius:8px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;outline:none}
+select.sel option{background:#0b0d13}
+
+/* buttons */
+.ab{width:100%;padding:10px 14px;border-radius:9px;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.ab-p{background:var(--purple);color:#fff}
+.ab-p:hover:not(:disabled){box-shadow:0 0 20px var(--purple-g);transform:translateY(-1px)}
+.ab-b{background:var(--blue);color:#fff}
+.ab-b:hover:not(:disabled){box-shadow:0 0 20px var(--blue-g);transform:translateY(-1px)}
+.ab-g{background:var(--green);color:#08090d}
+.ab-g:hover:not(:disabled){box-shadow:0 0 18px var(--green-g);transform:translateY(-1px)}
+.ab-ghost{background:var(--sf);color:var(--mu);border:1px solid var(--bd)}
+.ab-ghost:hover:not(:disabled){background:var(--sfh);color:var(--tx)}
+.ab:disabled{opacity:.24;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+.ibox{background:rgba(255,255,255,.02);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;font-size:10px;color:var(--mu);line-height:1.85}
+.ibox b{color:var(--tx);font-weight:500}
+.ibox.p{background:var(--purple-d);border-color:rgba(167,139,250,.18)} .ibox.p b{color:var(--purple)}
+.ibox.o{background:var(--orange-d);border-color:rgba(251,146,60,.18)} .ibox.o b{color:var(--orange)}
+.ibox.g{background:var(--green-d);border-color:rgba(125,249,200,.18)} .ibox.g b{color:var(--green)}
+
+/* loader */
+#loader{position:fixed;inset:0;z-index:500;background:rgba(8,9,13,.92);backdrop-filter:blur(14px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0;pointer-events:none;transition:.2s}
+#loader.on{opacity:1;pointer-events:all}
+.lr{width:40px;height:40px;border-radius:50%;border:2px solid var(--bd);border-top-color:var(--blue);animation:sp .7s linear infinite}
+.lr.lp{border-top-color:var(--purple)}
+#lmsg{font-size:11px;color:var(--mu);letter-spacing:.08em;max-width:260px;text-align:center;line-height:1.65}
+#lbar{width:220px;height:2px;background:var(--bd);border-radius:1px;overflow:hidden}
+#lfi{height:100%;background:var(--blue);width:0%;transition:width .12s}
+#lfi.lp{background:var(--purple)}
+
+#toast{position:fixed;bottom:22px;right:20px;display:flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-size:11px;font-weight:500;z-index:600;opacity:0;pointer-events:none;transform:translateY(5px);transition:.2s;border:1px solid transparent}
+#toast.on{opacity:1;transform:translateY(0)}
+#toast.ok{background:rgba(125,249,200,.1);border-color:rgba(125,249,200,.22);color:var(--green)}
+#toast.ai{background:var(--purple-d);border-color:rgba(167,139,250,.22);color:var(--purple)}
+#toast.warn{background:var(--orange-d);border-color:var(--orange-g);color:var(--orange)}
+#toast.err{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.22);color:#f87171}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- VR STAGE -->
+  <div id="stage">
+    <div id="ai-bar"></div>
+    <canvas id="vc"></canvas>
+    <div id="eq-wrap">
+      <canvas id="eq-cv"></canvas>
+      <span class="eq-lbl">Equirectangular 2:1 · VR-Ready</span>
+    </div>
+    <div id="empty">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="e-ring"><div class="e-in">
+          <div class="e-ico">⬡</div>
+          <div class="e-lbl">360°</div>
+        </div></div>
+        <p class="e-hint">選擇 AI 引擎並上傳照片<br>生成 VR 全景效果</p>
+      </div>
+    </div>
+    <div id="xh">
+      <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="white" stroke-width="1">
+        <circle cx="9.5" cy="9.5" r="2.5"/>
+        <line x1="9.5" y1="0" x2="9.5" y2="5.5"/><line x1="9.5" y1="13.5" x2="9.5" y2="19"/>
+        <line x1="0" y1="9.5" x2="5.5" y2="9.5"/><line x1="13.5" y1="9.5" x2="19" y2="9.5"/>
+      </svg>
+    </div>
+    <div id="vtabs">
+      <div class="vtab on" data-v="vr">👁 VR 預覽</div>
+      <div class="vtab" data-v="eq">🗺 平面圖</div>
+    </div>
+    <div id="hud">
+      <div class="hpill">拖曳旋轉 · 滾輪縮放</div>
+      <div class="hpill" id="hudpos">LON <b>0°</b> LAT <b>0°</b></div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div id="panel">
+    <div class="ph">
+      <div class="logo">
+        <span class="logo-360">360</span>
+        <span class="logo-vr">VR Studio</span>
+        <span class="logo-badge">免費 AI</span>
+      </div>
+    </div>
+
+    <div class="mbar">
+      <button class="mbtn m-ai" id="mbtn-ai" onclick="setMode('ai')">✦ AI 智能轉換</button>
+      <button class="mbtn" id="mbtn-vr" onclick="setMode('vr')">⬡ 原生 360</button>
+    </div>
+
+    <!-- ══ AI PANEL ══ -->
+    <div class="pb" id="pb-ai">
+
+      <!-- Engine selector -->
+      <div class="sec">選擇 AI 引擎</div>
+      <div class="eng-grid" style="grid-template-columns:1fr 1fr 1fr">
+
+        <div class="eng-btn on" data-eng="hf" onclick="selectEng('hf')">
+          <div class="eng-ico">🤗</div>
+          <span class="eng-name">HuggingFace</span>
+          <span class="eng-tag">無需Key</span>
+        </div>
+
+        <div class="eng-btn" data-eng="together" onclick="selectEng('together')">
+          <div class="eng-ico">⚡</div>
+          <span class="eng-name">Together.ai</span>
+          <span class="eng-tag">免費Token</span>
+        </div>
+
+        <div class="eng-btn" data-eng="cf" onclick="selectEng('cf')">
+          <div class="eng-ico">☁️</div>
+          <span class="eng-name">Cloudflare</span>
+          <span class="eng-tag">自建·無限速</span>
+        </div>
+
+      </div>
+
+      <!-- HF config (default shown) -->
+      <div class="api-cfg show" id="cfg-hf">
+        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
+          <b>🎉 無需任何 Key！</b><br>
+          備用模型：FLUX → SDXL → SD 1.5<br>
+          <span style="color:var(--mu2)">503 會自動等待重試，填 Token 更穩定</span>
+        </div>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">HF Token（選填，大幅提升成功率）</label>
+        <input class="api-input" type="password" id="hf-token" placeholder="hf_xxxx（不填也能用）"
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s">
+        <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.6">
+          免費取得：<a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--purple);text-decoration:none">huggingface.co/settings/tokens</a>
+        </div>
+      </div>
+
+      <!-- Together.ai config -->
+      <div class="api-cfg" id="cfg-together">
+        <div class="ibox" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
+          <b>⚡ Together.ai</b><br>
+          免費 Token 每月 1000+ 次生成<br>
+          模型：FLUX.1-schnell-Free
+        </div>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Together.ai Token</label>
+        <input class="api-input" type="password" id="together-key" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s">
+        <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.6">
+          免費註冊：<a href="https://api.together.ai" target="_blank" style="color:var(--purple);text-decoration:none">api.together.ai</a>（無需信用卡）
+        </div>
+      </div>
+
+      <!-- Cloudflare config -->
+      <div class="api-cfg" id="cfg-cf">
+        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
+          <b>☁️ 自建 Cloudflare Worker</b><br>
+          每日 <b>10 萬次免費</b>，無限速，無 CORS<br>
+          部署一次永久使用，適合大量學生測試
+        </div>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">你的 Worker URL</label>
+        <input class="api-input" type="text" id="cf-url" placeholder="https://my-flux.yourname.workers.dev"
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s">
+        <div style="font-size:10px;color:var(--mu2);margin-top:6px;line-height:1.7">
+          <b style="color:var(--green)">部署步驟（約 5 分鐘）：</b><br>
+          1. Fork：<a href="https://github.com/snakeying/flux-api-worker" target="_blank" style="color:var(--purple);text-decoration:none">flux-api-worker</a><br>
+          2. <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--purple);text-decoration:none">Cloudflare Dashboard</a> → Workers → Create<br>
+          3. Connect GitHub → 選你的 repo → Deploy<br>
+          4. 把生成的 URL 填入上方
+        </div>
+      </div>
+
+      <div class="ibox p" style="font-size:10px">
+        <b>✦ AI 三段流程</b><br>
+        ① Claude 分析場景 → 生成 SD 提示詞<br>
+        ② AI 引擎生成 360° 背景圖像<br>
+        ③ 照片＋背景合成 → VR 全景圖輸出
+      </div>
+
+      <div class="sec">上傳普通照片</div>
+      <div class="uz ai-uz" id="uz-ai">
+        <input type="file" id="fi-ai" accept="image/*">
+        <div class="uz-ico">🖼️</div>
+        <div class="uz-h">拖曳或點擊上傳</div>
+        <div class="uz-s">風景 · 室內 · 建築均可</div>
+        <div class="cta cta-p">✦ 開始 AI 分析</div>
+      </div>
+      <div class="tbox" id="tb-ai">
+        <img id="ti-ai" src="" alt="">
+        <span class="tdim" id="td-ai">—</span>
+        <span class="tname" id="tn-ai">—</span>
+      </div>
+
+      <!-- Steps display -->
+      <div class="steps" id="steps" style="display:none">
+        <div class="step" id="s1"><div class="sico" id="s1i">①</div><span class="stxt" id="s1t">等待開始…</span></div>
+        <div class="step" id="s2"><div class="sico" id="s2i">②</div><span class="stxt" id="s2t">等待步驟①…</span></div>
+        <div class="step" id="s3"><div class="sico" id="s3i">③</div><span class="stxt" id="s3t">等待步驟②…</span></div>
+      </div>
+
+      <div id="bg-prev">
+        <img id="bg-img" src="" alt="">
+        <div class="bg-lbl">AI 生成背景</div>
+      </div>
+
+      <div class="div"></div>
+      <div class="sec">照片位置</div>
+      <div class="sl-p">
+        <div class="sr"><span class="sl">水平 LON</span><input type="range" id="s-lon" min="-180" max="180" value="0"><span class="sv sv-p" id="v-lon">0°</span></div>
+        <div class="sr"><span class="sl">垂直 LAT</span><input type="range" id="s-lat" min="-60" max="60" value="0"><span class="sv sv-p" id="v-lat">0°</span></div>
+        <div class="sr"><span class="sl">視角 FOV</span><input type="range" id="s-fov" min="30" max="160" value="80"><span class="sv sv-p" id="v-fov">80°</span></div>
+        <div class="sr"><span class="sl">過渡模糊</span><input type="range" id="s-blur" min="0" max="50" value="20"><span class="sv sv-p" id="v-blur">20</span></div>
+      </div>
+
+      <div class="div"></div>
+      <select class="sel" id="sel-sz">
+        <option value="2048">2048 × 1024（快速）</option>
+        <option value="4096" selected>4096 × 2048（高品質）</option>
+      </select>
+
+      <button class="ab ab-p" id="btn-rebuild" onclick="rebuildPreview()" disabled>↻ 重新合成預覽</button>
+      <button class="ab ab-g" id="btn-dl" onclick="doDownload()" disabled>↓ 下載全景圖</button>
+
+    </div>
+
+    <!-- ══ VR PANEL ══ -->
+    <div class="pb" id="pb-vr" style="display:none">
+      <div class="ibox">
+        <b>⬡ 原生 360° 檢視器</b><br>
+        上傳 Equirectangular 格式（寬高比 2:1）全景圖直接球面顯示，無需轉換。
+      </div>
+      <div class="sec">上傳 360° 全景圖</div>
+      <div class="uz" id="uz-vr">
+        <input type="file" id="fi-vr" accept="image/*">
+        <div class="uz-ico">🌐</div>
+        <div class="uz-h">上傳 Equirectangular 全景圖</div>
+        <div class="uz-s">寬高比 2:1 · JPG PNG WEBP</div>
+        <div class="cta cta-b">選擇 360° 照片</div>
+      </div>
+      <div class="tbox" id="tb-vr">
+        <img id="ti-vr" src="" alt="">
+        <span class="tdim" id="td-vr">—</span>
+        <span class="tname" id="tn-vr">—</span>
+      </div>
+      <div class="ibox o" id="vr-warn" style="display:none">
+        <b>⚠ 比例非 2:1</b><br>球面顯示時上下會留黑或拉伸，建議改用 AI 轉換模式。
+      </div>
+      <div class="div"></div>
+      <div class="sl-b">
+        <div class="sr"><span class="sl">FOV</span><input type="range" id="s-fov-vr" min="20" max="120" value="75"><span class="sv sv-b" id="v-fov-vr">75°</span></div>
+        <div class="sr"><span class="sl">靈敏度</span><input type="range" id="s-spd" min="5" max="30" value="10"><span class="sv sv-b" id="v-spd">1.0×</span></div>
+      </div>
+      <div class="ibox"><b>操作</b>：拖曳旋轉 · 滾輪/雙指縮放</div>
+    </div>
+  </div>
+</div>
+
+<div id="loader"><div class="lr" id="lring"></div><p id="lmsg">處理中…</p><div id="lbar"><div id="lfi"></div></div></div>
+<div id="toast"></div>
+<canvas id="wc" style="display:none"></canvas>
+
+<script>
+var PI=Math.PI, PI2=PI*2, HPI=PI/2;
+
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+var mode='ai', eng='hf';
+var srcData=null, srcW=0, srcH=0;
+var bgData=null, equirectData=null, sceneInfo=null;
+var vrLon=0, vrLat=0, vrFov=75, vrSpd=1;
+var drag=false, dsx=0, dsy=0, dsl=0, dsa=0;
+var viewMode='vr', needRender=true;
+
+// ══════════════════════════════════════════════════
+//  VR CANVAS (Canvas 2D rectilinear projection)
+// ══════════════════════════════════════════════════
+var vc=document.getElementById('vc'), ctx=vc.getContext('2d');
+var rW=1, rH=1;
+
+function resizeVC(){
+  var s=document.getElementById('stage');
+  rW=Math.max(1,Math.floor(s.offsetWidth*0.5));
+  rH=Math.max(1,Math.floor(s.offsetHeight*0.5));
+  vc.width=rW; vc.height=rH; needRender=true;
+}
+resizeVC();
+window.addEventListener('resize', resizeVC);
+
+function renderVR(){
+  if(!equirectData){ drawEmpty(); return; }
+  var W=rW, H=rH, sd=equirectData.data, SW=equirectData.width, SH=equirectData.height;
+  var f=(W*.5)/Math.tan(vrFov*PI/360);
+  var sL=Math.sin(vrLon*PI/180), cL=Math.cos(vrLon*PI/180);
+  var sA=Math.sin(vrLat*PI/180), cA=Math.cos(vrLat*PI/180);
+  var out=ctx.createImageData(W,H), od=out.data, cx=W*.5, cy=H*.5;
+  for(var j=0;j<H;j++){
+    for(var i=0;i<W;i++){
+      var rx=(i-cx)/f, ry=-(j-cy)/f, rl=Math.sqrt(rx*rx+ry*ry+1);
+      rx/=rl; ry/=rl; var rz=1/rl;
+      var ry2=ry*cA-rz*sA, rz2=ry*sA+rz*cA;
+      var rx3=rx*cL+rz2*sL, rz3=-rx*sL+rz2*cL;
+      var theta=Math.atan2(rx3,rz3), phi=Math.asin(ry2<-1?-1:ry2>1?1:ry2);
+      var u=(theta/PI2+.5+10)%1, v=.5-phi/PI;
+      if(v<0)v=0; if(v>.9999)v=.9999;
+      var sx=(u*SW|0)%SW, sy=v*SH|0;
+      var si=(sy*SW+sx)*4, di=(j*W+i)*4;
+      od[di]=sd[si]; od[di+1]=sd[si+1]; od[di+2]=sd[si+2]; od[di+3]=255;
+    }
+  }
+  ctx.putImageData(out,0,0);
+}
+function drawEmpty(){
+  ctx.fillStyle='#050708'; ctx.fillRect(0,0,rW,rH);
+  var g=ctx.createRadialGradient(rW/2,rH/2,0,rW/2,rH/2,rW*.42);
+  g.addColorStop(0,'rgba(74,144,226,.05)'); g.addColorStop(1,'transparent');
+  ctx.fillStyle=g; ctx.fillRect(0,0,rW,rH);
+}
+
+var _pl=null, _pa=null, _pf=null;
+function vrLoop(){
+  requestAnimationFrame(vrLoop);
+  if(viewMode!=='vr') return;
+  if(needRender||vrLon!==_pl||vrLat!==_pa||vrFov!==_pf){
+    vrLat=Math.max(-85,Math.min(85,vrLat));
+    renderVR(); _pl=vrLon; _pa=vrLat; _pf=vrFov; needRender=false;
+  }
+  document.getElementById('hudpos').innerHTML='LON <b>'+vrLon.toFixed(1)+'°</b> LAT <b>'+vrLat.toFixed(1)+'°</b>';
+}
+vrLoop();
+
+vc.addEventListener('pointerdown',function(e){ drag=true; vc.classList.add('grab'); dsx=e.clientX; dsy=e.clientY; dsl=vrLon; dsa=vrLat; vc.setPointerCapture(e.pointerId); });
+vc.addEventListener('pointermove',function(e){ if(!drag)return; var k=vrFov/80*.18*vrSpd; vrLon=dsl-(e.clientX-dsx)*k; vrLat=dsa+(e.clientY-dsy)*k*.55; needRender=true; });
+vc.addEventListener('pointerup',function(){ drag=false; vc.classList.remove('grab'); });
+vc.addEventListener('pointerleave',function(){ drag=false; vc.classList.remove('grab'); });
+vc.addEventListener('wheel',function(e){ e.preventDefault(); vrFov=Math.max(20,Math.min(120,vrFov+e.deltaY*.05)); needRender=true; },{passive:false});
+var lt=null, p0=null, tl0=0, ta0=0;
+vc.addEventListener('touchstart',function(e){ e.preventDefault(); if(e.touches.length===1){lt=e.touches[0];tl0=vrLon;ta0=vrLat;}else if(e.touches.length===2)p0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); },{passive:false});
+vc.addEventListener('touchmove',function(e){ e.preventDefault(); var k=vrFov/80*.22*vrSpd; if(e.touches.length===1&&lt){vrLon=tl0-(e.touches[0].clientX-lt.clientX)*k;vrLat=ta0+(e.touches[0].clientY-lt.clientY)*k*.55;needRender=true;lt=e.touches[0];}else if(e.touches.length===2&&p0){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);vrFov=Math.max(20,Math.min(120,vrFov*p0/d));p0=d;needRender=true;} },{passive:false});
+vc.addEventListener('touchend',function(){ lt=null; p0=null; });
+document.querySelectorAll('.vtab').forEach(function(t){
+  t.addEventListener('click',function(){
+    viewMode=this.dataset.v;
+    document.querySelectorAll('.vtab').forEach(function(x){x.classList.remove('on');});
+    this.classList.add('on');
+    document.getElementById('eq-wrap').classList.toggle('on',viewMode==='eq');
+    needRender=true;
+  });
+});
+
+// ══════════════════════════════════════════════════
+//  MODE & ENGINE SWITCHING
+// ══════════════════════════════════════════════════
+function setMode(m){
+  mode=m;
+  document.getElementById('pb-ai').style.display=m==='ai'?'flex':'none';
+  document.getElementById('pb-vr').style.display=m==='vr'?'flex':'none';
+  document.getElementById('mbtn-ai').className='mbtn'+(m==='ai'?' m-ai':'');
+  document.getElementById('mbtn-vr').className='mbtn'+(m==='vr'?' m-vr':'');
+  needRender=true;
+}
+
+function selectEng(e){
+  eng=e;
+  document.querySelectorAll('.eng-btn').forEach(function(b){ b.classList.toggle('on',b.dataset.eng===e); });
+  document.getElementById('cfg-hf').classList.toggle('show', e==='hf');
+  document.getElementById('cfg-together').classList.toggle('show', e==='together');
+  document.getElementById('cfg-cf').classList.toggle('show', e==='cf');
+}
+
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — HuggingFace (no key needed)
+// ══════════════════════════════════════════════════
+async function generateWithHF(prompt){
+  // 多個備用模型，依序嘗試
+  var HF_MODELS=[
+    'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+    'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
+    'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5'
+  ];
+  var MODEL_NAMES=['FLUX.1-schnell','SDXL','SD 1.5'];
+  var MAX_RETRIES=3;
+
+  for(var mi=0; mi<HF_MODELS.length; mi++){
+    for(var attempt=1; attempt<=MAX_RETRIES; attempt++){
+      setStep(2,'active',MODEL_NAMES[mi]+' 生成中… (第'+attempt+'次嘗試)');
+      try {
+        var hfTok=(document.getElementById('hf-token')||{}).value||'';
+        hfTok=hfTok.trim();
+        var hfHdrs={'Content-Type':'application/json','Accept':'image/png,image/jpeg,image/*,*/*'};
+        if(hfTok) hfHdrs['Authorization']='Bearer '+hfTok;
+        var resp=await fetch(HF_MODELS[mi],{
+          method:'POST',
+          headers:hfHdrs,
+          body:JSON.stringify({
+            inputs: prompt,
+            parameters:{ width:1024, height:512, num_inference_steps:4 }
+          })
+        });
+
+        if(resp.status===503||resp.status===500){
+          var errJson=await resp.json().catch(function(){return{};});
+          var waitSec=Math.min((errJson.estimated_time||15)+2, 60);
+          setStep(2,'active',MODEL_NAMES[mi]+' 模型預熱中，等待 '+Math.round(waitSec)+'s…');
+          await sleep(waitSec*1000);
+          continue;
+        }
+        if(resp.status===429){
+          setStep(2,'warn','請求頻繁，等待 15s 重試…');
+          await sleep(15000);
+          continue;
+        }
+        if(resp.status===401||resp.status===403){
+          throw new Error('需要認證（模型已設為私有）');
+        }
+        if(!resp.ok){
+          var errTxt=await resp.text().catch(function(){return'unknown';});
+          throw new Error('HTTP '+resp.status+': '+errTxt.slice(0,60));
+        }
+
+        var blob=await resp.blob();
+        if(!blob.type.startsWith('image/')){
+          var txt=await blob.text().catch(function(){return'';});
+          throw new Error('回傳非圖片 ('+blob.type+'): '+txt.slice(0,40));
+        }
+        setStep(2,'done',MODEL_NAMES[mi]+' 生成成功 ✓');
+        return URL.createObjectURL(blob);
+
+      } catch(e){
+        if(attempt===MAX_RETRIES){
+          // Try next model
+          setStep(2,'warn',MODEL_NAMES[mi]+' 失敗，嘗試備用模型…');
+          await sleep(1500);
+          break; // break inner loop, try next model
+        }
+        setStep(2,'warn','第'+attempt+'次失敗：'+e.message.slice(0,40)+'，重試中…');
+        await sleep(3000);
+      }
+    }
+  }
+  throw new Error('所有 HuggingFace 模型均無法使用');
+}
+
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — Together.ai
+// ══════════════════════════════════════════════════
+async function generateWithTogether(prompt){
+  var key=document.getElementById('together-key').value.trim();
+  var headers={'Content-Type':'application/json'};
+  if(key) headers['Authorization']='Bearer '+key;
+
+  setStep(2,'active','Together.ai 生成中… (約15-30s)');
+
+  var resp=await fetch('https://api.together.xyz/v1/images/generations',{
+    method:'POST',
+    headers:headers,
+    body:JSON.stringify({
+      model:'black-forest-labs/FLUX.1-schnell-Free',
+      prompt:prompt,
+      width:1024, height:512, steps:4, n:1
+    })
+  });
+
+  if(!resp.ok){
+    var errText=await resp.text().catch(function(){return'';});
+    throw new Error('Together API '+resp.status+': '+errText.slice(0,80));
+  }
+
+  var data=await resp.json();
+  var imgUrl=data.data&&data.data[0]&&data.data[0].url;
+  if(!imgUrl) throw new Error('Together 回傳無圖片 URL');
+  return imgUrl;
+}
+
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — Cloudflare Workers AI
+// ══════════════════════════════════════════════════
+async function generateWithCF(prompt){
+  var cfUrl=(document.getElementById('cf-url')||{}).value||'';
+  cfUrl=cfUrl.trim().replace(/\/+$/,'');
+  if(!cfUrl){ throw new Error('請填入你的 Cloudflare Worker URL'); }
+
+  setStep(2,'active','Cloudflare Worker 生成中… (約5-15s)');
+
+  // Try /generate endpoint first, then /api/generate
+  var endpoints=[cfUrl+'/generate', cfUrl+'/api/generate', cfUrl+'/'];
+  var lastErr='';
+
+  for(var ei=0; ei<endpoints.length; ei++){
+    try {
+      var resp=await fetch(endpoints[ei],{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt:prompt, width:1024, height:512, steps:4})
+      });
+      if(!resp.ok){
+        lastErr='HTTP '+resp.status;
+        continue;
+      }
+      var ct=resp.headers.get('content-type')||'';
+      if(ct.startsWith('image/')){
+        // Returns binary image directly
+        var blob=await resp.blob();
+        return URL.createObjectURL(blob);
+      }
+      // Returns JSON with base64 or URL
+      var data=await resp.json();
+      if(data.image_url) return data.image_url;
+      if(data.image_b64||data.image){
+        var b64=data.image_b64||data.image;
+        var byteStr=atob(b64);
+        var arr=new Uint8Array(byteStr.length);
+        for(var i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+        return URL.createObjectURL(new Blob([arr],{type:'image/png'}));
+      }
+      if(data.url) return data.url;
+      lastErr='未知回傳格式';
+    } catch(e){ lastErr=e.message; }
+  }
+  throw new Error('Cloudflare Worker 呼叫失敗：'+lastErr);
+}
+
+// ══════════════════════════════════════════════════
+//  AI PIPELINE
+// ══════════════════════════════════════════════════
+async function runAIPipeline(imgEl){
+  setStep(1,'active','Claude 分析場景…');
+  setStep(2,'idle','等待步驟①…');
+  setStep(3,'idle','等待步驟②…');
+  document.getElementById('ai-bar').classList.add('on');
+  sceneInfo=null;
+
+  // ── Step 1: Claude scene analysis ──
+  var sdPrompt=null;
+  try {
+    var thumb=document.createElement('canvas');
+    var sc=Math.min(1, 480/Math.max(imgEl.naturalWidth,imgEl.naturalHeight));
+    thumb.width=Math.round(imgEl.naturalWidth*sc);
+    thumb.height=Math.round(imgEl.naturalHeight*sc);
+    thumb.getContext('2d').drawImage(imgEl,0,0,thumb.width,thumb.height);
+    var b64=thumb.toDataURL('image/jpeg',0.76).split(',')[1];
+
+    var res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:360,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+            {type:'text',text:'Analyze this photo for 360° VR panorama generation. Return ONLY raw JSON (no markdown, no backticks):\n{"scene_type":"outdoor/indoor/urban/nature","sd_prompt":"English Stable Diffusion prompt (30-50 words) for a seamless equirectangular 360° panoramic background matching this scene. Include sky, lighting, atmosphere.","sky_rgb":[R,G,B],"ground_rgb":[R,G,B],"horizon_rgb":[R,G,B],"desc":"3-5 words"}'}
+          ]
+        }]
+      })
+    });
+    var json=await res.json();
+    var raw=(json.content&&json.content[0]&&json.content[0].text)||'{}';
+    raw=raw.replace(/```[a-z]*\n?/g,'').trim();
+    sceneInfo=JSON.parse(raw);
+    sdPrompt=sceneInfo.sd_prompt;
+    setStep(1,'done','場景識別：'+sceneInfo.desc);
+  } catch(e){
+    setStep(1,'warn','Claude 分析失敗，使用通用提示詞');
+    sdPrompt='seamless equirectangular 360 degree panorama, natural environment, cinematic lighting, photorealistic, high quality sky and ground';
+  }
+
+  // ── Step 2: Generate background image ──
+  var fullPrompt=sdPrompt+', equirectangular panorama 360 degrees, seamless wrap, wide angle, photorealistic, no artifacts';
+  var imgUrl=null;
+
+  try {
+    if(eng==='hf'){
+      imgUrl=await generateWithHF(fullPrompt);
+    } else if(eng==='cf'){
+      imgUrl=await generateWithCF(fullPrompt);
+    } else {
+      imgUrl=await generateWithTogether(fullPrompt);
+    }
+
+    // Load generated image into canvas
+    var genImg=await new Promise(function(resolve,reject){
+      var i=new Image();
+      i.crossOrigin='anonymous';
+      i.onload=function(){resolve(i);};
+      i.onerror=function(){reject(new Error('圖片載入失敗'));};
+      i.src=imgUrl;
+    });
+
+    var bgC=document.createElement('canvas');
+    bgC.width=genImg.naturalWidth||1024;
+    bgC.height=genImg.naturalHeight||512;
+    bgC.getContext('2d').drawImage(genImg,0,0);
+    bgData=bgC.getContext('2d').getImageData(0,0,bgC.width,bgC.height);
+
+    document.getElementById('bg-img').src=bgC.toDataURL('image/jpeg',0.8);
+    document.getElementById('bg-prev').classList.add('on');
+    setStep(2,'done','背景生成完成 ('+bgC.width+'×'+bgC.height+')');
+
+  } catch(e){
+    console.error('Background generation failed:', e);
+    setStep(2,'warn','生成失敗：'+e.message.slice(0,50)+'  → 使用 Claude 色彩填充');
+    bgData=null;
+    toast('背景生成失敗，使用色彩漸層替代','warn');
+  }
+
+  // ── Step 3: Composite ──
+  setStep(3,'active','合成全景圖…');
+  setTimeout(function(){
+    try {
+      var data=buildEquirect(1024,512);
+      equirectData=data; needRender=true;
+      updateEqFlat(data); showHUD();
+      document.getElementById('btn-dl').disabled=false;
+      setStep(3,'done','✓ 全景圖完成 — 左側可 VR 旋轉瀏覽！');
+      toast('✦ VR 全景圖已完成','ai');
+    } catch(e){
+      setStep(3,'err','合成失敗：'+e.message);
+    }
+    document.getElementById('ai-bar').classList.remove('on');
+  },20);
+}
+
+// ══════════════════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════════════════
+function loadImgFile(file,cb){
+  if(!file.type.startsWith('image/')){ toast('請上傳圖片檔案','err'); return; }
+  var url=URL.createObjectURL(file);
+  var img=new Image();
+  img.onload=function(){ cb(img,url,file.name); };
+  img.onerror=function(){ toast('圖片載入失敗','err'); };
+  img.src=url;
+}
+function toData(img){
+  var c=document.createElement('canvas');
+  c.width=img.naturalWidth; c.height=img.naturalHeight;
+  c.getContext('2d').drawImage(img,0,0);
+  return c.getContext('2d').getImageData(0,0,c.width,c.height);
+}
+
+document.getElementById('fi-ai').addEventListener('change',function(e){ if(e.target.files[0])handleAI(e.target.files[0]); this.value=''; });
+document.getElementById('fi-vr').addEventListener('change',function(e){ if(e.target.files[0])handleVR(e.target.files[0]); this.value=''; });
+
+function setupDrop(id,fn){
+  var el=document.getElementById(id);
+  el.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('hl');});
+  el.addEventListener('dragleave',function(){this.classList.remove('hl');});
+  el.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('hl');if(e.dataTransfer.files[0])fn(e.dataTransfer.files[0]);});
+}
+setupDrop('uz-ai',handleAI);
+setupDrop('uz-vr',handleVR);
+document.getElementById('stage').addEventListener('dragover',function(e){e.preventDefault();});
+document.getElementById('stage').addEventListener('drop',function(e){
+  e.preventDefault();
+  if(e.dataTransfer.files[0]){ mode==='ai'?handleAI(e.dataTransfer.files[0]):handleVR(e.dataTransfer.files[0]); }
+});
+
+function handleAI(file){
+  loadImgFile(file,function(img,url,name){
+    srcData=toData(img); srcW=img.naturalWidth; srcH=img.naturalHeight;
+    document.getElementById('ti-ai').src=url;
+    document.getElementById('td-ai').textContent=srcW+'×'+srcH;
+    document.getElementById('tn-ai').textContent=name;
+    document.getElementById('tb-ai').classList.add('on');
+    document.getElementById('steps').style.display='flex';
+    document.getElementById('btn-rebuild').disabled=false;
+    bgData=null;
+    document.getElementById('bg-prev').classList.remove('on');
+    runAIPipeline(img);
+  });
+}
+
+function handleVR(file){
+  showLoader('載入全景圖…',0,false);
+  loadImgFile(file,function(img,url,name){
+    equirectData=toData(img);
+    document.getElementById('ti-vr').src=url;
+    var r=(img.naturalWidth/img.naturalHeight).toFixed(2);
+    document.getElementById('td-vr').textContent=img.naturalWidth+'×'+img.naturalHeight+' ('+r+':1)';
+    document.getElementById('tn-vr').textContent=name;
+    document.getElementById('tb-vr').classList.add('on');
+    document.getElementById('vr-warn').style.display=Math.abs(img.naturalWidth/img.naturalHeight-2)>.15?'block':'none';
+    updateEqFlat(equirectData); showHUD(); needRender=true;
+    hideLoader(); toast('全景圖已載入 ✓','ok');
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  SAMPLING HELPERS
+// ══════════════════════════════════════════════════
+function sampleBL(d,w,h,u,v){
+  u=u<0?0:u>.9999?.9999:u; v=v<0?0:v>.9999?.9999:v;
+  var fx=u*w, fy=v*h, x0=fx|0, y0=fy|0;
+  var x1=Math.min(x0+1,w-1), y1=Math.min(y0+1,h-1);
+  var tx=fx-x0, ty=fy-y0;
+  var i00=(y0*w+x0)*4, i10=(y0*w+x1)*4, i01=(y1*w+x0)*4, i11=(y1*w+x1)*4;
+  return[
+    ((d[i00]*(1-tx)+d[i10]*tx)*(1-ty)+(d[i01]*(1-tx)+d[i11]*tx)*ty)|0,
+    ((d[i00+1]*(1-tx)+d[i10+1]*tx)*(1-ty)+(d[i01+1]*(1-tx)+d[i11+1]*tx)*ty)|0,
+    ((d[i00+2]*(1-tx)+d[i10+2]*tx)*(1-ty)+(d[i01+2]*(1-tx)+d[i11+2]*tx)*ty)|0
+  ];
+}
+
+// Background: AI image or color fallback
+function sampleBg(theta, phi){
+  var u=(theta/PI2+.5+10)%1, v=.5-phi/PI;
+  if(v<0)v=0; if(v>.9999)v=.9999;
+  if(bgData) return sampleBL(bgData.data, bgData.width, bgData.height, u, v);
+  // Color gradient fallback
+  var sc=sceneInfo;
+  var r,g,b;
+  if(sc){
+    var sT=sc.sky_rgb||[8,14,35], ho=sc.horizon_rgb||[55,75,95], gr=sc.ground_rgb||[22,18,12];
+    if(v<.35){var t=v/.35; r=sT[0]*(1-t)+ho[0]*t|0; g=sT[1]*(1-t)+ho[1]*t|0; b=sT[2]*(1-t)+ho[2]*t|0;}
+    else if(v<.65){var t=(v-.35)/.3; r=ho[0]*(1-t)+gr[0]*t|0; g=ho[1]*(1-t)+gr[1]*t|0; b=ho[2]*(1-t)+gr[2]*t|0;}
+    else{var dk=Math.min(1,(v-.65)/.35)*.4; r=gr[0]*(1-dk)|0; g=gr[1]*(1-dk)|0; b=gr[2]*(1-dk)|0;}
+  } else {
+    r=v<.5?(6+v/.5*25)|0:(31-(v-.5)/.5*20)|0;
+    g=v<.5?(10+v/.5*40)|0:(50-(v-.5)/.5*32)|0;
+    b=v<.5?(25+v/.5*60)|0:(85-(v-.5)/.5*55)|0;
+  }
+  return[r,g,b];
+}
+
+// ══════════════════════════════════════════════════
+//  BUILD EQUIRECTANGULAR
+// ══════════════════════════════════════════════════
+function buildEquirect(outW, outH){
+  var lon=parseFloat(document.getElementById('s-lon').value);
+  var lat=parseFloat(document.getElementById('s-lat').value);
+  var fov=parseFloat(document.getElementById('s-fov').value);
+  var blur=parseInt(document.getElementById('s-blur').value);
+  var hFovR=fov*PI/180, vFovR=hFovR*(srcH/srcW);
+  var hh=hFovR/2, hv=vFovR/2;
+  var lonR=lon*PI/180, latR=lat*PI/180;
+  var sLon=Math.sin(lonR), cLon=Math.cos(lonR);
+  var sLat=Math.sin(latR), cLat=Math.cos(latR);
+  var od=new Uint8ClampedArray(outW*outH*4);
+
+  for(var j=0;j<outH;j++){
+    for(var i=0;i<outW;i++){
+      var theta=(i/outW)*PI2-PI, phi=HPI-(j/outH)*PI;
+      var gx=Math.cos(phi)*Math.sin(theta), gy=Math.sin(phi), gz=Math.cos(phi)*Math.cos(theta);
+      var lx=gx*cLon+gz*sLon, lz=-gx*sLon+gz*cLon;
+      var ly=gy*cLat+lz*sLat, lz2=-gy*sLat+lz*cLat;
+      var di=(j*outW+i)*4, rgb;
+
+      if(lz2>0.001){
+        var ah=Math.atan2(lx,lz2), av=Math.atan2(ly,lz2);
+        if(Math.abs(ah)<=hh && Math.abs(av)<=hv){
+          rgb=sampleBL(srcData.data, srcW, srcH, ah/hFovR+.5, .5-av/vFovR);
+        } else {
+          var cah=ah<-hh?-hh:ah>hh?hh:ah, cav=av<-hv?-hv:av>hv?hv:av;
+          var dist=Math.sqrt((ah-cah)*(ah-cah)+(av-cav)*(av-cav));
+          var blendT=Math.min(1, dist/Math.max(hh,hv));
+          var ease=blendT*blendT*(3-2*blendT);
+          var edgeRgb;
+          if(blur===0){
+            edgeRgb=sampleBL(srcData.data, srcW, srcH, cah/hFovR+.5, .5-cav/vFovR);
+          } else {
+            var sp=blendT*blur*.04, rr=0, gg=0, bb=0;
+            var pts=[[cah,cav],[cah+sp*hFovR,cav],[cah-sp*hFovR,cav],[cah,cav+sp*vFovR],[cah,cav-sp*vFovR]];
+            for(var s=0;s<5;s++){var c2=sampleBL(srcData.data,srcW,srcH,pts[s][0]/hFovR+.5,.5-pts[s][1]/vFovR);rr+=c2[0];gg+=c2[1];bb+=c2[2];}
+            edgeRgb=[rr/5|0, gg/5|0, bb/5|0];
+          }
+          var bgRgb=sampleBg(theta, phi);
+          rgb=[edgeRgb[0]*(1-ease)+bgRgb[0]*ease|0, edgeRgb[1]*(1-ease)+bgRgb[1]*ease|0, edgeRgb[2]*(1-ease)+bgRgb[2]*ease|0];
+        }
+      } else {
+        rgb=sampleBg(theta, phi);
+      }
+      od[di]=rgb[0]; od[di+1]=rgb[1]; od[di+2]=rgb[2]; od[di+3]=255;
+    }
+  }
+  return new ImageData(od, outW, outH);
+}
+
+function rebuildPreview(){
+  if(!srcData){ toast('請先上傳照片','err'); return; }
+  showLoader('重新合成…',5,true);
+  setTimeout(function(){
+    var data=buildEquirect(1024,512);
+    equirectData=data; needRender=true; updateEqFlat(data);
+    hideLoader(); toast('預覽已更新 ✓','ok');
+  },20);
+}
+
+function doDownload(){
+  if(!srcData){ toast('請先完成 AI 轉換','err'); return; }
+  var outW=parseInt(document.getElementById('sel-sz').value);
+  showLoader('渲染 '+outW+'×'+(outW/2)+'…',5,true);
+  setTimeout(function(){
+    var data=buildEquirect(outW, outW/2);
+    equirectData=data; needRender=true; updateEqFlat(data);
+    var wc=document.getElementById('wc');
+    wc.width=outW; wc.height=outW/2;
+    wc.getContext('2d').putImageData(data,0,0);
+    wc.toBlob(function(blob){
+      var a=document.createElement('a');
+      a.download='vr-360-'+Date.now()+'.jpg';
+      a.href=URL.createObjectURL(blob); a.click();
+      hideLoader(); toast('下載完成 ✓','ok');
+    },'image/jpeg',0.95);
+  },20);
+}
+
+// ══════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════
+function setStep(n, state, txt){
+  var s=document.getElementById('s'+n);
+  var ico=document.getElementById('s'+n+'i');
+  var t=document.getElementById('s'+n+'t');
+  s.className='step';
+  if(state==='active'){ s.classList.add('active'); ico.className='sico spinning'; ico.textContent=''; }
+  else if(state==='done'){ s.classList.add('done'); ico.className='sico'; ico.textContent='✓'; }
+  else if(state==='warn'){ s.classList.add('warn'); ico.className='sico'; ico.textContent='⚠'; }
+  else if(state==='err'){ s.classList.add('err'); ico.className='sico'; ico.textContent='✗'; }
+  else{ ico.className='sico'; ico.textContent=''+n; }
+  t.textContent=txt;
+}
+function updateEqFlat(d){
+  var ec=document.getElementById('eq-cv');
+  ec.width=Math.min(d.width,1024); ec.height=Math.min(d.height,512);
+  var tmp=document.createElement('canvas'); tmp.width=d.width; tmp.height=d.height;
+  tmp.getContext('2d').putImageData(d,0,0);
+  ec.getContext('2d').drawImage(tmp,0,0,ec.width,ec.height);
+}
+function showHUD(){
+  document.getElementById('empty').classList.add('off');
+  document.getElementById('hud').classList.add('on');
+}
+function bindSl(id,vid,unit,cb){
+  var el=document.getElementById(id); if(!el)return;
+  el.addEventListener('input',function(e){
+    document.getElementById(vid).textContent=e.target.value+unit;
+    if(cb)cb(parseFloat(e.target.value));
+  });
+}
+bindSl('s-lon','v-lon','°'); bindSl('s-lat','v-lat','°');
+bindSl('s-fov','v-fov','°'); bindSl('s-blur','v-blur','');
+bindSl('s-fov-vr','v-fov-vr','°',function(v){ vrFov=v; needRender=true; });
+bindSl('s-spd','v-spd','×',function(v){ vrSpd=v/10; document.getElementById('v-spd').textContent=vrSpd.toFixed(1)+'×'; });
+
+function showLoader(m,p,ai){
+  document.getElementById('lmsg').textContent=m||'處理中…';
+  document.getElementById('loader').classList.add('on');
+  document.getElementById('lring').className='lr'+(ai?' lp':'');
+  document.getElementById('lfi').className=ai?'lp':'';
+  setP(p||0);
+}
+function hideLoader(){ document.getElementById('loader').classList.remove('on'); }
+function setP(p){ document.getElementById('lfi').style.width=p+'%'; }
+var _tt;
+function toast(m,type){
+  var el=document.getElementById('toast');
+  el.textContent=m; el.className='on '+(type||'ok');
+  clearTimeout(_tt); _tt=setTimeout(function(){ el.classList.remove('on'); },3200);
+}
+</script>
+</body>
+</html>
