@@ -227,10 +227,13 @@ select.sel option{background:#0b0d13}
   <!-- PANEL -->
   <div id="panel">
     <div class="ph">
-      <div class="logo">
-        <span class="logo-360">360</span>
-        <span class="logo-vr">VR Studio</span>
-        <span class="logo-badge">免費 AI</span>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="logo">
+          <span class="logo-360">360</span>
+          <span class="logo-vr">VR Studio</span>
+          <span class="logo-badge">免費 AI</span>
+        </div>
+        <button onclick="openGuide()" style="padding:4px 10px;border-radius:6px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.25);color:var(--orange);font-size:9px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:.05em;white-space:nowrap">老師設定指南</button>
       </div>
     </div>
 
@@ -246,7 +249,7 @@ select.sel option{background:#0b0d13}
       <div class="sec">選擇 AI 引擎</div>
       <div class="eng-grid" style="grid-template-columns:1fr 1fr 1fr">
 
-        <div class="eng-btn on" data-eng="hf" onclick="selectEng('hf')">
+        <div class="eng-btn" data-eng="hf" onclick="selectEng('hf')">
           <div class="eng-ico">🤗</div>
           <span class="eng-name">HuggingFace</span>
           <span class="eng-tag">無需Key</span>
@@ -258,7 +261,7 @@ select.sel option{background:#0b0d13}
           <span class="eng-tag">免費Token</span>
         </div>
 
-        <div class="eng-btn" data-eng="cf" onclick="selectEng('cf')">
+        <div class="eng-btn on" data-eng="cf" onclick="selectEng('cf')">
           <div class="eng-ico">☁️</div>
           <span class="eng-name">Cloudflare</span>
           <span class="eng-tag">自建·無限速</span>
@@ -266,8 +269,8 @@ select.sel option{background:#0b0d13}
 
       </div>
 
-      <!-- HF config (default shown) -->
-      <div class="api-cfg show" id="cfg-hf">
+      <!-- HF config -->
+      <div class="api-cfg" id="cfg-hf">
         <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
           <b>🎉 無需任何 Key！</b><br>
           備用模型：FLUX → SDXL → SD 1.5<br>
@@ -297,22 +300,15 @@ select.sel option{background:#0b0d13}
       </div>
 
       <!-- Cloudflare config -->
-      <div class="api-cfg" id="cfg-cf">
-        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
-          <b>☁️ 自建 Cloudflare Worker</b><br>
-          每日 <b>10 萬次免費</b>，無限速，無 CORS<br>
-          部署一次永久使用，適合大量學生測試
+      <div class="api-cfg show" id="cfg-cf">
+        <div class="ibox g" style="font-size:10px;padding:9px 11px;margin-bottom:8px">
+          <b>✅ Worker 已就緒！</b>
+          &nbsp; 每日免費 <b style="color:var(--green)">10 萬次</b>
         </div>
-        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">你的 Worker URL</label>
-        <input class="api-input" type="text" id="cf-url" placeholder="https://my-flux.yourname.workers.dev"
-          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s">
-        <div style="font-size:10px;color:var(--mu2);margin-top:6px;line-height:1.7">
-          <b style="color:var(--green)">部署步驟（約 5 分鐘）：</b><br>
-          1. Fork：<a href="https://github.com/snakeying/flux-api-worker" target="_blank" style="color:var(--purple);text-decoration:none">flux-api-worker</a><br>
-          2. <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--purple);text-decoration:none">Cloudflare Dashboard</a> → Workers → Create<br>
-          3. Connect GitHub → 選你的 repo → Deploy<br>
-          4. 把生成的 URL 填入上方
-        </div>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Worker URL</label>
+        <input class="api-input" type="text" id="cf-url"
+          value="https://360vr-api.gp01002.workers.dev"
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid rgba(125,249,200,.3);color:var(--tx);font-family:'DM Mono',monospace;font-size:11px;outline:none">
       </div>
 
       <div class="ibox p" style="font-size:10px">
@@ -400,6 +396,141 @@ select.sel option{background:#0b0d13}
   </div>
 </div>
 
+<!-- ══ TEACHER GUIDE MODAL ══ -->
+<div id="guide-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);overflow-y:auto;padding:20px">
+  <div style="max-width:640px;margin:0 auto;background:#0d0f17;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden">
+
+    <!-- modal header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:.12em;color:var(--orange)">老師設定指南</div>
+        <div style="font-size:10px;color:var(--mu);margin-top:2px">360 VR Studio · Cloudflare Worker 部署說明</div>
+      </div>
+      <button onclick="closeGuide()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--mu);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+    </div>
+
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+
+      <!-- 架構 -->
+      <div style="background:rgba(74,144,226,.08);border:1px solid rgba(74,144,226,.18);border-radius:9px;padding:12px 14px;font-size:11px;color:rgba(232,234,240,.8);line-height:1.85">
+        <b style="color:var(--blue)">系統架構（三段式 AI）</b><br>
+        ① Claude 分析照片場景 → 生成背景提示詞<br>
+        ② Cloudflare Workers AI 生成 360° 背景圖（Flux-1-schnell）<br>
+        ③ Canvas 合成 → 輸出標準 Equirectangular 全景圖
+      </div>
+
+      <!-- step 1 -->
+      <div style="display:flex;gap:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);color:var(--orange);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">1</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:5px">建立純 Worker（不是 Pages）</div>
+          <div style="font-size:11px;color:var(--mu);line-height:1.85">
+            <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--purple)">dash.cloudflare.com</a>
+            → Workers &amp; Pages → <b style="color:var(--tx)">Create</b> → 選左邊 <b style="color:var(--green)">Worker</b>（不是 Pages！）<br>
+            名稱填 <code style="font-family:'DM Mono',monospace;color:var(--green)">360vr-api</code> → Deploy
+          </div>
+        </div>
+      </div>
+
+      <!-- step 2 -->
+      <div style="display:flex;gap:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(125,249,200,.1);border:1px solid rgba(125,249,200,.28);color:var(--green);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">2</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;margin-bottom:5px">貼入 AI 程式碼</div>
+          <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Overview → 右上角 <b style="color:var(--tx)">Edit Code</b> → 全選刪除 → 貼入以下程式碼 → <b style="color:var(--green)">Save and deploy</b></div>
+          <div style="position:relative">
+            <pre id="guide-code" style="background:#060810;border:1px solid rgba(125,249,200,.15);border-radius:7px;padding:11px;font-size:10px;font-family:'DM Mono',monospace;color:rgba(125,249,200,.78);line-height:1.65;overflow-x:auto;white-space:pre;max-height:200px;overflow-y:auto">export default {
+  async fetch(request, env) {
+    if (request.method === 'OPTIONS')
+      return new Response(null, { headers: cors() });
+    if (request.method !== 'POST')
+      return new Response('POST only', { status: 405, headers: cors() });
+    try {
+      const { prompt = 'panoramic landscape', width = 1024, height = 512 } =
+        await request.json();
+      const result = await env.AI.run(
+        '@cf/black-forest-labs/flux-1-schnell',
+        { prompt, width, height, num_steps: 4 }
+      );
+      const bytes = new Uint8Array(
+        await new Response(result.image).arrayBuffer()
+      );
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      }
+      const b64 = btoa(binary);
+      return Response.json({ image: { b64json: b64 } }, { headers: cors() });
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 500, headers: cors() });
+    }
+  }
+};
+function cors() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+}</pre>
+            <button onclick="copyGuideCode()" id="gcopy-btn" style="position:absolute;top:7px;right:7px;padding:3px 11px;border-radius:5px;background:var(--green);color:#08090d;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">複製</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- step 3 -->
+      <div style="display:flex;gap:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(74,144,226,.11);border:1px solid rgba(74,144,226,.28);color:var(--blue);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">3</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:5px">綁定 Workers AI</div>
+          <div style="font-size:11px;color:var(--mu);line-height:1.85">
+            Worker 頁面 → <b style="color:var(--tx)">Bindings</b> → Add → 選 <b style="color:var(--tx)">Workers AI</b><br>
+            Variable name 填 <code style="font-family:'DM Mono',monospace;background:rgba(125,249,200,.08);color:var(--green);padding:1px 6px;border-radius:3px">AI</code>（必須大寫）→ Save<br>
+            <span style="color:#f87171">沒做這步 → 報錯 env.AI is not defined</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- step 4 -->
+      <div style="display:flex;gap:12px">
+        <div style="width:26px;height:26px;border-radius:50%;background:rgba(167,139,250,.11);border:1px solid rgba(167,139,250,.28);color:var(--purple);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">4</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:5px">學生使用的 URL</div>
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(125,249,200,.07);border:1px solid rgba(125,249,200,.18);border-radius:7px;padding:8px 11px;margin-bottom:6px">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--green);flex:1">https://360vr-api.gp01002.workers.dev</span>
+            <button onclick="navigator.clipboard.writeText('https://360vr-api.gp01002.workers.dev').then(function(){toast('URL 已複製','ok');})" style="padding:3px 10px;border-radius:5px;background:var(--green);color:#08090d;border:none;font-size:9px;font-weight:700;cursor:pointer">複製</button>
+          </div>
+          <div style="font-size:11px;color:var(--mu)">VR Studio 已預填此 URL，學生直接上傳照片即可。</div>
+        </div>
+      </div>
+
+      <!-- test -->
+      <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:13px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:9px">🧪 測試 Worker 連線</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <input type="text" id="guide-test-url" value="https://360vr-api.gp01002.workers.dev"
+            style="flex:1;min-width:160px;padding:7px 10px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--tx);font-family:'DM Mono',monospace;font-size:10px;outline:none">
+          <button onclick="guideTest()" id="guide-test-btn" style="padding:7px 14px;border-radius:7px;background:var(--blue);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">測試</button>
+        </div>
+        <div id="guide-test-result" style="display:none;margin-top:8px;font-size:10px;font-family:'DM Mono',monospace;padding:8px 10px;border-radius:6px;line-height:1.65"></div>
+      </div>
+
+      <!-- student instructions -->
+      <div style="background:rgba(74,144,226,.07);border:1px solid rgba(74,144,226,.16);border-radius:9px;padding:12px 14px;font-size:11px;color:rgba(232,234,240,.8);line-height:2">
+        <b style="color:var(--blue)">給學生的說明（可直接複製）</b><br>
+        1. 打開 360-vr-studio.html<br>
+        2. 確認左上引擎選的是 ☁️ Cloudflare<br>
+        3. 點「上傳普通照片」選一張照片<br>
+        4. 等待 AI 分析場景（約 20 秒）<br>
+        5. 左側出現 VR 球面預覽，可拖曳旋轉<br>
+        6. 按「↓ 下載全景圖」儲存 360° 全景照片
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div id="loader"><div class="lr" id="lring"></div><p id="lmsg">處理中…</p><div id="lbar"><div id="lfi"></div></div></div>
 <div id="toast"></div>
 <canvas id="wc" style="display:none"></canvas>
@@ -410,7 +541,7 @@ var PI=Math.PI, PI2=PI*2, HPI=PI/2;
 // ══════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════
-var mode='ai', eng='hf';
+var mode='ai', eng='cf';
 var srcData=null, srcW=0, srcH=0;
 var bgData=null, equirectData=null, sceneInfo=null;
 var vrLon=0, vrLat=0, vrFov=75, vrSpd=1;
@@ -621,50 +752,61 @@ function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
 // ══════════════════════════════════════════════════
 //  IMAGE GENERATION — Cloudflare Workers AI
+//  Supports: https://360vr.gp05.workers.dev
 // ══════════════════════════════════════════════════
 async function generateWithCF(prompt){
   var cfUrl=(document.getElementById('cf-url')||{}).value||'';
   cfUrl=cfUrl.trim().replace(/\/+$/,'');
   if(!cfUrl){ throw new Error('請填入你的 Cloudflare Worker URL'); }
 
-  setStep(2,'active','Cloudflare Worker 生成中… (約5-15s)');
+  setStep(2,'active','Cloudflare ☁️ 生成中… (約10-20s)');
 
-  // Try /generate endpoint first, then /api/generate
-  var endpoints=[cfUrl+'/generate', cfUrl+'/api/generate', cfUrl+'/'];
-  var lastErr='';
+  var resp=await fetch(cfUrl+'/',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:prompt, width:1024, height:512})
+  });
 
-  for(var ei=0; ei<endpoints.length; ei++){
-    try {
-      var resp=await fetch(endpoints[ei],{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:prompt, width:1024, height:512, steps:4})
-      });
-      if(!resp.ok){
-        lastErr='HTTP '+resp.status;
-        continue;
-      }
-      var ct=resp.headers.get('content-type')||'';
-      if(ct.startsWith('image/')){
-        // Returns binary image directly
-        var blob=await resp.blob();
-        return URL.createObjectURL(blob);
-      }
-      // Returns JSON with base64 or URL
-      var data=await resp.json();
-      if(data.image_url) return data.image_url;
-      if(data.image_b64||data.image){
-        var b64=data.image_b64||data.image;
-        var byteStr=atob(b64);
-        var arr=new Uint8Array(byteStr.length);
-        for(var i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
-        return URL.createObjectURL(new Blob([arr],{type:'image/png'}));
-      }
-      if(data.url) return data.url;
-      lastErr='未知回傳格式';
-    } catch(e){ lastErr=e.message; }
+  if(!resp.ok){
+    var errTxt=await resp.text().catch(function(){return'';});
+    throw new Error('HTTP '+resp.status+': '+errTxt.slice(0,60));
   }
-  throw new Error('Cloudflare Worker 呼叫失敗：'+lastErr);
+
+  // Check if binary image returned directly
+  var ct=resp.headers.get('content-type')||'';
+  if(ct.startsWith('image/')){
+    var blob=await resp.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  // JSON response — handle all Cloudflare Workers AI formats
+  var data=await resp.json();
+  console.log('Cloudflare 回應格式:', Object.keys(data)); // debug
+
+  // Format 1: { image: { b64json: "..." } }  ← b64json is a STRING, not function
+  if(data.image && data.image.b64json){
+    return 'data:image/png;base64,'+data.image.b64json;
+  }
+  // Format 2: { data: [{ b64json: "..." }] }
+  if(data.data && data.data[0] && data.data[0].b64json){
+    return 'data:image/png;base64,'+data.data[0].b64json;
+  }
+  // Format 3: { image: "base64string" }
+  if(data.image && typeof data.image==='string'){
+    return 'data:image/png;base64,'+data.image;
+  }
+  // Format 4: { result: { image: "base64string" } }  ← common in flux-api-worker
+  if(data.result && data.result.image){
+    return 'data:image/png;base64,'+data.result.image;
+  }
+  // Format 5: { image_url: "https://..." }
+  if(data.image_url) return data.image_url;
+  // Format 6: { url: "https://..." }
+  if(data.url) return data.url;
+
+  // Unknown — log full response for debugging
+  console.error('Cloudflare 未知回傳格式，完整內容:', JSON.stringify(data).slice(0,200));
+  throw new Error('未知回傳格式，請按 F12 查看 Console');
 }
 
 // ══════════════════════════════════════════════════
@@ -993,6 +1135,55 @@ bindSl('s-lon','v-lon','°'); bindSl('s-lat','v-lat','°');
 bindSl('s-fov','v-fov','°'); bindSl('s-blur','v-blur','');
 bindSl('s-fov-vr','v-fov-vr','°',function(v){ vrFov=v; needRender=true; });
 bindSl('s-spd','v-spd','×',function(v){ vrSpd=v/10; document.getElementById('v-spd').textContent=vrSpd.toFixed(1)+'×'; });
+
+function copyCFCode(){
+  var code=document.getElementById('cf-worker-code').textContent;
+  navigator.clipboard.writeText(code).then(function(){
+    toast('Worker 程式碼已複製 ✓','ok');
+  }).catch(function(){
+    toast('請手動選取程式碼複製','warn');
+  });
+}
+
+function openGuide(){ document.getElementById('guide-modal').style.display='block'; document.body.style.overflow='hidden'; }
+function closeGuide(){ document.getElementById('guide-modal').style.display='none'; document.body.style.overflow=''; }
+document.getElementById('guide-modal').addEventListener('click',function(e){ if(e.target===this)closeGuide(); });
+
+function copyGuideCode(){
+  var code=document.getElementById('guide-code').textContent;
+  navigator.clipboard.writeText(code).then(function(){
+    var btn=document.getElementById('gcopy-btn');
+    btn.textContent='已複製 ✓'; btn.style.background='var(--blue)'; btn.style.color='#fff';
+    setTimeout(function(){btn.textContent='複製';btn.style.background='var(--green)';btn.style.color='#08090d';},2500);
+  });
+}
+
+async function guideTest(){
+  var url=document.getElementById('guide-test-url').value.trim().replace(/\/+$/,'');
+  var btn=document.getElementById('guide-test-btn');
+  var res=document.getElementById('guide-test-result');
+  btn.textContent='測試中…'; btn.disabled=true;
+  res.style.display='block';
+  res.style.cssText='display:block;margin-top:8px;font-size:10px;font-family:DM Mono,monospace;padding:8px 10px;border-radius:6px;line-height:1.65;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:rgba(232,234,240,.5)';
+  res.textContent='連線中…';
+  try{
+    var t=Date.now();
+    var r=await fetch(url+'/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:'test',width:64,height:32})});
+    var ms=Date.now()-t, txt=await r.text();
+    if(r.ok&&txt.includes('b64json')){
+      res.style.background='rgba(125,249,200,.08)';res.style.borderColor='rgba(125,249,200,.2)';res.style.color='rgba(125,249,200,.9)';
+      res.textContent='✅ 成功！('+ms+'ms) Worker 正常，學生可以使用！';
+    } else {
+      var hint=txt.includes('AI')?' → Bindings 沒設定':txt.includes('static')?' → 程式碼沒貼':'';
+      res.style.background='rgba(248,113,113,.08)';res.style.borderColor='rgba(248,113,113,.2)';res.style.color='rgba(248,113,113,.9)';
+      res.textContent='❌ HTTP '+r.status+' ('+ms+'ms)\n'+txt.slice(0,100)+hint;
+    }
+  }catch(e){
+    res.style.background='rgba(248,113,113,.08)';res.style.borderColor='rgba(248,113,113,.2)';res.style.color='rgba(248,113,113,.9)';
+    res.textContent='❌ 連線失敗：'+e.message;
+  }
+  btn.textContent='測試'; btn.disabled=false;
+}
 
 function showLoader(m,p,ai){
   document.getElementById('lmsg').textContent=m||'處理中…';
