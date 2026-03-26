@@ -876,45 +876,37 @@ async function generateWithPixazo(prompt){
 
 // ══════════════════════════════════════════════════
 //  IMAGE GENERATION — Pollinations.ai
-//  完全免費，無 Key，無 CORS，GitHub Pages 可用
-//  原理：直接用 <img src="url"> 取得圖片，不走 fetch
+//  完全免費，無 Key，GitHub Pages 可用
+//  用 fetch 取 blob → 無 CORS，無 canvas taint
 // ══════════════════════════════════════════════════
 async function generateWithPollinations(prompt){
-  setStep(2,'active','Pollinations 🌸 生成中… (約5-15s)');
+  setStep(2,'active','Pollinations 🌸 生成中… (約5-20s)');
 
   var encoded=encodeURIComponent(prompt);
-  // 加隨機 seed 避免快取
   var seed=Math.floor(Math.random()*99999);
   var url='https://image.pollinations.ai/prompt/'+encoded
     +'?width=1024&height=512&seed='+seed+'&nologo=true&model=flux';
 
-  // 用 Image 元素載入（無 CORS 限制）
-  return await new Promise(function(resolve,reject){
-    var img=new Image();
-    img.crossOrigin=''; // 試試看，失敗也沒關係
-    var timer=setTimeout(function(){ reject(new Error('Pollinations 逾時（30s）')); },30000);
-    img.onload=function(){
-      clearTimeout(timer);
-      // 用 canvas 轉成 blob URL
-      var c=document.createElement('canvas');
-      c.width=img.naturalWidth||1024;
-      c.height=img.naturalHeight||512;
-      try {
-        c.getContext('2d').drawImage(img,0,0);
-        c.toBlob(function(blob){
-          resolve(URL.createObjectURL(blob));
-        },'image/jpeg',0.92);
-      } catch(taint){
-        // canvas tainted，直接用 URL
-        resolve(url);
+  // fetch 取得 blob（Pollinations 的 CDN 支援 CORS GET）
+  var MAX_RETRY=2;
+  for(var attempt=1;attempt<=MAX_RETRY;attempt++){
+    try {
+      setStep(2,'active','Pollinations 🌸 生成中… (第'+attempt+'次，約10-20s)');
+      var resp=await fetch(url,{method:'GET',mode:'cors'});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      var blob=await resp.blob();
+      if(!blob.type.startsWith('image/')) throw new Error('非圖片格式: '+blob.type);
+      setStep(2,'done','Pollinations 生成成功 ✓');
+      return URL.createObjectURL(blob);
+    } catch(e){
+      if(attempt<MAX_RETRY){
+        setStep(2,'active','Pollinations 重試中… ('+e.message+')');
+        await new Promise(function(r){setTimeout(r,3000);});
+      } else {
+        throw new Error('Pollinations 失敗: '+e.message);
       }
-    };
-    img.onerror=function(){
-      clearTimeout(timer);
-      reject(new Error('Pollinations 載入失敗'));
-    };
-    img.src=url;
-  });
+    }
+  }
 }
 
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
