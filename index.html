@@ -249,6 +249,12 @@ select.sel option{background:#0b0d13}
 
       <!-- Engine selector -->
       <div class="sec">選擇 AI 引擎</div>
+      <!-- GitHub Pages notice -->
+      <div id="ghpages-notice" style="display:none;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.25);border-radius:8px;padding:8px 11px;font-size:10px;color:var(--orange);line-height:1.7;margin-bottom:6px">
+        <b>⚠ GitHub Pages 偵測到</b><br>
+        HuggingFace / Claude API 被 CORS 封鎖。<br>
+        請選 <b>☁️ Cloudflare</b>（唯一可用）或本地 Live Server 開啟。
+      </div>
       <div class="eng-grid" style="grid-template-columns:1fr 1fr">
 
         <div class="eng-btn on" data-eng="cf" onclick="selectEng('cf')">
@@ -662,6 +668,17 @@ document.querySelectorAll('.vtab').forEach(function(t){
 // ══════════════════════════════════════════════════
 //  MODE & ENGINE SWITCHING
 // ══════════════════════════════════════════════════
+// ── GitHub Pages CORS detection ──
+(function(){
+  var host=location.hostname;
+  if(host.includes('github.io')||host.includes('github.com')){
+    var notice=document.getElementById('ghpages-notice');
+    if(notice) notice.style.display='block';
+    // Auto-select Cloudflare as it's the only one that works
+    selectEng('cf');
+  }
+})();
+
 function setMode(m){
   mode=m;
   document.getElementById('pb-ai').style.display=m==='ai'?'flex':'none';
@@ -858,9 +875,8 @@ async function generateWithPixazo(prompt){
       }
     } catch(e){ continue; }
   }
-  // Auto-fallback to HuggingFace
-  setStep(2,'warn','Pixazo 無回應，自動切換 HuggingFace…');
-  return await generateWithHF(prompt);
+  // Auto-fallback: 不再呼叫 HF（GitHub Pages 同樣 CORS 封鎖）
+  throw new Error('Pixazo 無回應，請改用 ☁️ Cloudflare 引擎');
 }
 
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
@@ -932,13 +948,16 @@ async function runAIPipeline(imgEl){
   sceneInfo=null;
 
   // ── Step 1: Claude scene analysis ──
+  // Note: Claude API is CORS-blocked on GitHub Pages.
+  // Fallback: extract dominant colors from the image directly.
   var sdPrompt=null;
   try {
     var thumb=document.createElement('canvas');
     var sc=Math.min(1, 480/Math.max(imgEl.naturalWidth,imgEl.naturalHeight));
     thumb.width=Math.round(imgEl.naturalWidth*sc);
     thumb.height=Math.round(imgEl.naturalHeight*sc);
-    thumb.getContext('2d').drawImage(imgEl,0,0,thumb.width,thumb.height);
+    var tctx=thumb.getContext('2d');
+    tctx.drawImage(imgEl,0,0,thumb.width,thumb.height);
     var b64=thumb.toDataURL('image/jpeg',0.76).split(',')[1];
 
     var res=await fetch('https://api.anthropic.com/v1/messages',{
@@ -950,28 +969,58 @@ async function runAIPipeline(imgEl){
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:360,
-        messages:[{
-          role:'user',
-          content:[
-            {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
-            {type:'text',text:'Analyze this photo for 360° VR panorama generation. Return ONLY raw JSON (no markdown, no backticks):\n{"scene_type":"outdoor/indoor/urban/nature","sd_prompt":"English Stable Diffusion prompt (30-50 words) for a seamless equirectangular 360° panoramic background matching this scene. Include sky, lighting, atmosphere.","sky_rgb":[R,G,B],"ground_rgb":[R,G,B],"horizon_rgb":[R,G,B],"desc":"3-5 words"}'}
-          ]
-        }]
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+          {type:'text',text:'Analyze this photo for 360° VR panorama generation. Return ONLY raw JSON (no markdown, no backticks):\n{"scene_type":"outdoor/indoor/urban/nature","sd_prompt":"English Stable Diffusion prompt (30-50 words) for a seamless equirectangular 360° panoramic background matching this scene. Include sky, lighting, atmosphere.","sky_rgb":[R,G,B],"ground_rgb":[R,G,B],"horizon_rgb":[R,G,B],"desc":"3-5 words"}'}
+        ]}]
       })
     });
     var json=await res.json();
+    if(json.error) throw new Error(json.error.message||'API error');
     var raw=(json.content&&json.content[0]&&json.content[0].text)||'{}';
     raw=raw.replace(/```[a-z]*\n?/g,'').trim();
-    // 有時 Claude 在 JSON 前後加了空白或其他字元，嘗試找第一個 { }
     var jsonMatch=raw.match(/\{[\s\S]*\}/);
     if(jsonMatch) raw=jsonMatch[0];
     sceneInfo=JSON.parse(raw);
     sdPrompt=sceneInfo.sd_prompt||sceneInfo.prompt||'seamless 360 equirectangular panorama cinematic lighting';
-    var descLabel=sceneInfo.desc||sceneInfo.scene_type||sceneInfo.description||'分析完成';
+    var descLabel=sceneInfo.desc||sceneInfo.scene_type||'分析完成';
     setStep(1,'done','場景識別：'+descLabel);
+
   } catch(e){
-    setStep(1,'warn','Claude 分析失敗，使用通用提示詞');
-    sdPrompt='seamless equirectangular 360 degree panorama, natural environment, cinematic lighting, photorealistic, high quality sky and ground';
+    // Claude failed (CORS on GitHub Pages, or 401) → extract colors locally
+    var isCORS=e.message.indexOf('fetch')+e.message.indexOf('CORS')+e.message.indexOf('Failed')>-3;
+    var is401=e.message.indexOf('401')>=0||e.message.indexOf('Unauthorized')>=0;
+    if(is401){
+      setStep(1,'warn','Claude API Key 未設定，使用圖像分析…');
+    } else {
+      setStep(1,'warn','場景分析（本地色彩提取）…');
+    }
+
+    // Extract dominant colors from image for use as background
+    try {
+      var sW=imgEl.naturalWidth, sH=imgEl.naturalHeight;
+      var sc2=document.createElement('canvas');
+      sc2.width=32; sc2.height=32;
+      sc2.getContext('2d').drawImage(imgEl,0,0,32,32);
+      var px=sc2.getContext('2d').getImageData(0,0,32,16).data; // top half = sky
+      var pxG=sc2.getContext('2d').getImageData(0,16,32,16).data; // bottom = ground
+      var sr=0,sg=0,sb=0,gr=0,gg=0,gb=0,n=px.length/4;
+      for(var pi=0;pi<px.length;pi+=4){sr+=px[pi];sg+=px[pi+1];sb+=px[pi+2];}
+      for(var pi=0;pi<pxG.length;pi+=4){gr+=pxG[pi];gg+=pxG[pi+1];gb+=pxG[pi+2];}
+      sr=sr/n|0; sg=sg/n|0; sb=sb/n|0;
+      gr=gr/n|0; gg=gg/n|0; gb=gb/n|0;
+      // Build smart prompt from colors
+      var isSunny=sb>sg&&sb>sr;
+      var isWarm=sr>sb;
+      var skyDesc=isSunny?'clear blue sky':'overcast sky';
+      if(isWarm) skyDesc='golden sunset sky';
+      sdPrompt='seamless equirectangular 360 panorama, '+skyDesc+', photorealistic, natural lighting, high quality landscape environment, wide angle';
+      sceneInfo={sky_rgb:[sr,sg,sb],ground_rgb:[gr,gg,gb],horizon_rgb:[(sr+gr)>>1,(sg+gg)>>1,(sb+gb)>>1]};
+      setStep(1,'done','本地色彩分析完成（上：rgb('+sr+','+sg+','+sb+') 下：rgb('+gr+','+gg+','+gb+')）');
+    } catch(e2){
+      setStep(1,'warn','分析失敗，使用通用提示詞');
+      sdPrompt='seamless equirectangular 360 degree panorama, natural environment, cinematic lighting, photorealistic, high quality sky and ground';
+    }
   }
 
   // ── Step 2: Generate background image ──
