@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>360 VR Studio · AI</title>
+<!-- Puter.js: 免費無限，無需 API Key -->
+<script src="https://js.puter.com/v2/"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -247,38 +249,75 @@ select.sel option{background:#0b0d13}
 
       <!-- Engine selector -->
       <div class="sec">選擇 AI 引擎</div>
-      <div class="eng-grid" style="grid-template-columns:1fr 1fr 1fr">
-
-        <div class="eng-btn" data-eng="hf" onclick="selectEng('hf')">
-          <div class="eng-ico">🤗</div>
-          <span class="eng-name">HuggingFace</span>
-          <span class="eng-tag">無需Key</span>
-        </div>
-
-        <div class="eng-btn" data-eng="together" onclick="selectEng('together')">
-          <div class="eng-ico">⚡</div>
-          <span class="eng-name">Together.ai</span>
-          <span class="eng-tag">免費Token</span>
-        </div>
+      <div class="eng-grid" style="grid-template-columns:1fr 1fr">
 
         <div class="eng-btn on" data-eng="cf" onclick="selectEng('cf')">
           <div class="eng-ico">☁️</div>
           <span class="eng-name">Cloudflare</span>
-          <span class="eng-tag">自建·無限速</span>
+          <span class="eng-tag">自建·無限速 ★</span>
+        </div>
+
+        <div class="eng-btn" data-eng="puter" onclick="selectEng('puter')">
+          <div class="eng-ico">⚡</div>
+          <span class="eng-name">Puter.js</span>
+          <span class="eng-tag">無限免費·無需Key</span>
+        </div>
+
+        <div class="eng-btn" data-eng="pixazo" onclick="selectEng('pixazo')">
+          <div class="eng-ico">🎨</div>
+          <span class="eng-name">Pixazo AI</span>
+          <span class="eng-tag">免費·無需註冊</span>
+        </div>
+
+        <div class="eng-btn" data-eng="hf" onclick="selectEng('hf')">
+          <div class="eng-ico">🤗</div>
+          <span class="eng-name">HuggingFace</span>
+          <span class="eng-tag">免費·偶爾503</span>
         </div>
 
       </div>
 
+      <!-- Puter.js config -->
+      <div class="api-cfg" id="cfg-puter">
+        <div class="ibox g" style="font-size:10px;padding:8px 10px">
+          <b>⚡ Puter.js — 真正無限免費！</b><br>
+          無需任何 Key，原生 JS SDK 直接呼叫<br>
+          支援 Flux、SDXL、Stable Diffusion<br>
+        </div>
+        <div class="ibox o" style="font-size:10px;padding:8px 10px;margin-top:6px">
+          <b>⚠ 必須用伺服器開啟（否則 CORS 錯誤）</b><br>
+          VSCode → 安裝 Live Server 擴充套件<br>
+          → 右鍵 HTML → <b>Open with Live Server</b><br>
+          不能直接雙擊開啟 HTML 檔案
+        </div>
+      </div>
+
+      <!-- Pixazo AI config -->
+      <div class="api-cfg" id="cfg-pixazo">
+        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
+          <b>🎨 Pixazo AI</b><br>
+          免費 Key 可用 Flux Schnell / SDXL / SD<br>
+          無需信用卡，免費額度高
+        </div>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Pixazo API Key（免費申請）</label>
+        <input class="api-input" type="password" id="pixazo-key" placeholder="免費申請後貼入"
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'DM Mono',monospace;font-size:11px;outline:none">
+        <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.7">
+          免費取得：<a href="https://www.pixazo.ai/models/free-api" target="_blank" style="color:var(--purple);text-decoration:none">pixazo.ai/models/free-api</a><br>
+          不填也會嘗試 → 失敗自動切 HuggingFace
+        </div>
+      </div>
+
       <!-- HF config -->
       <div class="api-cfg" id="cfg-hf">
-        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
-          <b>🎉 無需任何 Key！</b><br>
+        <div class="ibox" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
+          <b>🤗 HuggingFace 公共端點</b><br>
           備用模型：FLUX → SDXL → SD 1.5<br>
           <span style="color:var(--mu2)">503 會自動等待重試，填 Token 更穩定</span>
         </div>
-        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">HF Token（選填，大幅提升成功率）</label>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">HF Token（選填）</label>
         <input class="api-input" type="password" id="hf-token" placeholder="hf_xxxx（不填也能用）"
-          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'Inter',sans-serif;font-size:11px;outline:none;transition:.15s">
+          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'DM Mono',monospace;font-size:11px;outline:none">
         <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.6">
           免費取得：<a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--purple);text-decoration:none">huggingface.co/settings/tokens</a>
         </div>
@@ -288,15 +327,11 @@ select.sel option{background:#0b0d13}
       <div class="api-cfg" id="cfg-together">
         <div class="ibox o" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
           <b>⚠ 需要先儲值才能使用</b><br>
-          Together.ai API 需要 "initial deposit" 才解鎖，<br>
-          非完全免費。建議改用 ☁️ Cloudflare。
+          Together.ai 需 "initial deposit" 才解鎖，非完全免費。
         </div>
-        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Together.ai Token（需儲值後才有效）</label>
+        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Together.ai Token</label>
         <input class="api-input" type="password" id="together-key" placeholder="key_xxxxxxxxxxxxxxxx"
           style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'DM Mono',monospace;font-size:11px;outline:none">
-        <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.6">
-          儲值後取得 Key：<a href="https://api.together.ai/settings/api-keys" target="_blank" style="color:var(--purple);text-decoration:none">api.together.ai</a>
-        </div>
       </div>
 
       <!-- Cloudflare config -->
@@ -639,9 +674,10 @@ function setMode(m){
 function selectEng(e){
   eng=e;
   document.querySelectorAll('.eng-btn').forEach(function(b){ b.classList.toggle('on',b.dataset.eng===e); });
-  document.getElementById('cfg-hf').classList.toggle('show', e==='hf');
-  document.getElementById('cfg-together').classList.toggle('show', e==='together');
-  document.getElementById('cfg-cf').classList.toggle('show', e==='cf');
+  ['hf','together','cf','puter','pixazo'].forEach(function(id){
+    var el=document.getElementById('cfg-'+id);
+    if(el) el.classList.toggle('show', id===e);
+  });
 }
 
 // ══════════════════════════════════════════════════
@@ -746,6 +782,81 @@ async function generateWithTogether(prompt){
   var imgUrl=data.data&&data.data[0]&&data.data[0].url;
   if(!imgUrl) throw new Error('Together 回傳無圖片 URL');
   return imgUrl;
+}
+
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — Puter.js (truly unlimited free)
+// ══════════════════════════════════════════════════
+async function generateWithPuter(prompt){
+  setStep(2,'active','Puter.js 生成中… (約15-30s)');
+  try {
+    if(typeof puter==='undefined'){
+      throw new Error('Puter.js 未載入，請用 Live Server 本地開啟');
+    }
+    // puter.ai.image.generate returns an img element
+    var imgEl=await puter.ai.image.generate(prompt);
+    if(!imgEl || (!imgEl.src && !imgEl.currentSrc)){
+      throw new Error('Puter 未回傳圖片');
+    }
+    var src=imgEl.src||imgEl.currentSrc;
+    setStep(2,'done','Puter.js 生成成功 ✓');
+    return src;
+  } catch(e){
+    throw new Error('Puter.js: '+e.message.slice(0,60));
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — Pixazo AI
+//  Free key available at pixazo.ai/models/free-api
+// ══════════════════════════════════════════════════
+async function generateWithPixazo(prompt){
+  var key=(document.getElementById('pixazo-key')||{}).value||'';
+  key=key.trim();
+
+  setStep(2,'active','Pixazo AI 生成中… (約15-30s)');
+
+  // Pixazo uses gateway.pixazo.ai with Ocp-Apim-Subscription-Key header
+  // Free tier: key optional, limited rate. With key: higher throughput.
+  var ENDPOINTS=[
+    {url:'https://gateway.pixazo.ai/stable-diffusion/v2beta/stable-image/generate/core',
+     body:{prompt:prompt,output_format:'png'}},
+    {url:'https://gateway.pixazo.ai/sd-xl/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
+     body:{text_prompts:[{text:prompt,weight:1}],cfg_scale:7,height:512,width:1024,steps:4,samples:1}},
+    {url:'https://gateway.pixazo.ai/stable-image/generate/sd3',
+     body:{prompt:prompt,output_format:'png',width:1024,height:512}}
+  ];
+
+  for(var ei=0;ei<ENDPOINTS.length;ei++){
+    try {
+      var hdrs={'Content-Type':'application/json','Accept':'application/json'};
+      if(key) hdrs['Ocp-Apim-Subscription-Key']=key;
+      var resp=await fetch(ENDPOINTS[ei].url,{
+        method:'POST',headers:hdrs,
+        body:JSON.stringify(ENDPOINTS[ei].body)
+      });
+      if(!resp.ok) continue;
+      var ct=resp.headers.get('content-type')||'';
+      if(ct.startsWith('image/')){
+        var blob=await resp.blob();
+        setStep(2,'done','Pixazo 生成成功 ✓');
+        return URL.createObjectURL(blob);
+      }
+      var data=await resp.json();
+      // Pixazo / Stability AI response formats
+      var imgUrl2=data.url||data.image_url||
+        (data.data&&data.data[0]&&data.data[0].url)||
+        (data.artifacts&&data.artifacts[0]&&'data:image/png;base64,'+data.artifacts[0].base64)||
+        (data.images&&data.images[0])||data.image;
+      if(imgUrl2){
+        setStep(2,'done','Pixazo 生成成功 ✓');
+        return imgUrl2;
+      }
+    } catch(e){ continue; }
+  }
+  // Auto-fallback to HuggingFace
+  setStep(2,'warn','Pixazo 無回應，自動切換 HuggingFace…');
+  return await generateWithHF(prompt);
 }
 
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
@@ -871,6 +982,10 @@ async function runAIPipeline(imgEl){
       imgUrl=await generateWithHF(fullPrompt);
     } else if(eng==='cf'){
       imgUrl=await generateWithCF(fullPrompt);
+    } else if(eng==='puter'){
+      imgUrl=await generateWithPuter(fullPrompt);
+    } else if(eng==='pixazo'){
+      imgUrl=await generateWithPixazo(fullPrompt);
     } else {
       imgUrl=await generateWithTogether(fullPrompt);
     }
