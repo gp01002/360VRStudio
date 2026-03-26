@@ -789,21 +789,25 @@ async function generateWithTogether(prompt){
 // ══════════════════════════════════════════════════
 async function generateWithPuter(prompt){
   setStep(2,'active','Puter.js 生成中… (約15-30s)');
-  try {
-    if(typeof puter==='undefined'){
-      throw new Error('Puter.js 未載入，請用 Live Server 本地開啟');
-    }
-    // puter.ai.image.generate returns an img element
-    var imgEl=await puter.ai.image.generate(prompt);
-    if(!imgEl || (!imgEl.src && !imgEl.currentSrc)){
-      throw new Error('Puter 未回傳圖片');
-    }
-    var src=imgEl.src||imgEl.currentSrc;
-    setStep(2,'done','Puter.js 生成成功 ✓');
-    return src;
-  } catch(e){
-    throw new Error('Puter.js: '+e.message.slice(0,60));
+  if(typeof puter==='undefined'){
+    throw new Error('Puter.js 未載入，請用 Live Server 開啟（不能直接雙擊 HTML）');
   }
+  var result=await puter.ai.image.generate(prompt);
+  // 處理各種回傳結構
+  if(result instanceof HTMLImageElement){
+    if(!result.complete||!result.naturalWidth){
+      await new Promise(function(res,rej){result.onload=res;result.onerror=rej;setTimeout(rej,30000);});
+    }
+    var pc=document.createElement('canvas');
+    pc.width=result.naturalWidth||1024; pc.height=result.naturalHeight||512;
+    pc.getContext('2d').drawImage(result,0,0);
+    return await new Promise(function(res){pc.toBlob(function(b){res(URL.createObjectURL(b));},'image/jpeg',0.92);});
+  }
+  var src=typeof result==='string'?result:(result&&(result.src||result.url||result.currentSrc));
+  if(!src) throw new Error('Puter 未回傳圖片 ('+JSON.stringify(result).slice(0,60)+')');
+  if(src.startsWith('data:')) return b64ToBlobUrl(src.split(',')[1]);
+  setStep(2,'done','Puter.js 生成成功 ✓');
+  return src;
 }
 
 // ══════════════════════════════════════════════════
@@ -861,9 +865,20 @@ async function generateWithPixazo(prompt){
 
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
+// ── b64 → Blob URL，自動偵測 JPEG/PNG/WebP MIME ──
+function b64ToBlobUrl(b64str){
+  var raw=b64str.replace(/^data:[^;]+;base64,/,'');
+  var h=raw.slice(0,8);
+  var mime='image/jpeg';
+  if(h.startsWith('iVBOR'))mime='image/png';
+  else if(h.startsWith('UklGR'))mime='image/webp';
+  var bin=atob(raw),arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([arr],{type:mime}));
+}
+
 // ══════════════════════════════════════════════════
 //  IMAGE GENERATION — Cloudflare Workers AI
-//  Supports: https://360vr.gp05.workers.dev
 // ══════════════════════════════════════════════════
 async function generateWithCF(prompt){
   var cfUrl=(document.getElementById('cf-url')||{}).value||'';
@@ -883,40 +898,26 @@ async function generateWithCF(prompt){
     throw new Error('HTTP '+resp.status+': '+errTxt.slice(0,60));
   }
 
-  // Check if binary image returned directly
   var ct=resp.headers.get('content-type')||'';
   if(ct.startsWith('image/')){
-    var blob=await resp.blob();
-    return URL.createObjectURL(blob);
+    return URL.createObjectURL(await resp.blob());
   }
 
-  // JSON response — handle all Cloudflare Workers AI formats
   var data=await resp.json();
-  console.log('Cloudflare 回應格式:', Object.keys(data)); // debug
+  console.log('CF keys:', Object.keys(data));
 
-  // Format 1: { image: { b64json: "..." } }  ← b64json is a STRING, not function
-  if(data.image && data.image.b64json){
-    return 'data:image/png;base64,'+data.image.b64json;
-  }
-  // Format 2: { data: [{ b64json: "..." }] }
-  if(data.data && data.data[0] && data.data[0].b64json){
-    return 'data:image/png;base64,'+data.data[0].b64json;
-  }
-  // Format 3: { image: "base64string" }
-  if(data.image && typeof data.image==='string'){
-    return 'data:image/png;base64,'+data.image;
-  }
-  // Format 4: { result: { image: "base64string" } }  ← common in flux-api-worker
-  if(data.result && data.result.image){
-    return 'data:image/png;base64,'+data.result.image;
-  }
-  // Format 5: { image_url: "https://..." }
+  // 取出 base64，轉成 Blob URL（自動修正 MIME）
+  var b64=null;
+  if(data.image&&data.image.b64json)                   b64=data.image.b64json;
+  else if(data.data&&data.data[0]&&data.data[0].b64json) b64=data.data[0].b64json;
+  else if(data.image&&typeof data.image==='string')     b64=data.image;
+  else if(data.result&&data.result.image)               b64=data.result.image;
+
+  if(b64) return b64ToBlobUrl(b64);
   if(data.image_url) return data.image_url;
-  // Format 6: { url: "https://..." }
-  if(data.url) return data.url;
+  if(data.url)       return data.url;
 
-  // Unknown — log full response for debugging
-  console.error('Cloudflare 未知回傳格式，完整內容:', JSON.stringify(data).slice(0,200));
+  console.error('CF 未知格式:', JSON.stringify(data).slice(0,200));
   throw new Error('未知回傳格式，請按 F12 查看 Console');
 }
 
@@ -991,15 +992,11 @@ async function runAIPipeline(imgEl){
     }
 
     // Load generated image into canvas
-    // Note: data: URLs must NOT use crossOrigin — it causes load failure
+    // All URLs at this point are blob: URLs → no crossOrigin needed
     var genImg=await new Promise(function(resolve,reject){
       var i=new Image();
-      // Only set crossOrigin for http/https URLs, not data: URLs
-      if(imgUrl && !imgUrl.startsWith('data:')){
-        i.crossOrigin='anonymous';
-      }
       i.onload=function(){resolve(i);};
-      i.onerror=function(){reject(new Error('圖片載入失敗 ('+imgUrl.slice(0,30)+'…)'));};
+      i.onerror=function(){reject(new Error('圖片載入失敗 ('+imgUrl.slice(0,40)+'…)'));};
       i.src=imgUrl;
     });
 
