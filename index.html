@@ -252,67 +252,61 @@ select.sel option{background:#0b0d13}
       <!-- GitHub Pages notice -->
       <div id="ghpages-notice" style="display:none;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.25);border-radius:8px;padding:8px 11px;font-size:10px;color:var(--orange);line-height:1.7;margin-bottom:6px">
         <b>⚠ GitHub Pages 偵測到</b><br>
-        HuggingFace / Claude API 被 CORS 封鎖。<br>
-        請選 <b>☁️ Cloudflare</b>（唯一可用）或本地 Live Server 開啟。
+        已自動切換至 🌸 Pollinations（無 CORS，完全免費）
       </div>
       <div class="eng-grid" style="grid-template-columns:1fr 1fr">
 
-        <div class="eng-btn on" data-eng="cf" onclick="selectEng('cf')">
+        <div class="eng-btn on" data-eng="pollinations" onclick="selectEng('pollinations')">
+          <div class="eng-ico">🌸</div>
+          <span class="eng-name">Pollinations</span>
+          <span class="eng-tag">無需Key·無CORS ★</span>
+        </div>
+
+        <div class="eng-btn" data-eng="cf" onclick="selectEng('cf')">
           <div class="eng-ico">☁️</div>
           <span class="eng-name">Cloudflare</span>
-          <span class="eng-tag">自建·無限速 ★</span>
+          <span class="eng-tag">自建·10萬/日</span>
         </div>
 
         <div class="eng-btn" data-eng="puter" onclick="selectEng('puter')">
           <div class="eng-ico">⚡</div>
           <span class="eng-name">Puter.js</span>
-          <span class="eng-tag">無限免費·無需Key</span>
-        </div>
-
-        <div class="eng-btn" data-eng="pixazo" onclick="selectEng('pixazo')">
-          <div class="eng-ico">🎨</div>
-          <span class="eng-name">Pixazo AI</span>
-          <span class="eng-tag">免費·無需註冊</span>
+          <span class="eng-tag">需 Live Server</span>
         </div>
 
         <div class="eng-btn" data-eng="hf" onclick="selectEng('hf')">
           <div class="eng-ico">🤗</div>
           <span class="eng-name">HuggingFace</span>
-          <span class="eng-tag">免費·偶爾503</span>
+          <span class="eng-tag">需 Live Server</span>
         </div>
 
+      </div>
+
+      <!-- Pollinations config -->
+      <div class="api-cfg show" id="cfg-pollinations">
+        <div class="ibox g" style="font-size:10px;padding:9px 11px">
+          <b>🌸 Pollinations.ai — 零設定，完全免費！</b><br>
+          無需任何 Key · 無 CORS · GitHub Pages 直接可用<br>
+          圖片透過 URL 直接取得，無跨域問題<br>
+          <span style="color:var(--mu2)">模型：Flux · 每次約 5-15 秒</span>
+        </div>
       </div>
 
       <!-- Puter.js config -->
       <div class="api-cfg" id="cfg-puter">
-        <div class="ibox g" style="font-size:10px;padding:8px 10px">
-          <b>⚡ Puter.js — 真正無限免費！</b><br>
-          無需任何 Key，原生 JS SDK 直接呼叫<br>
-          支援 Flux、SDXL、Stable Diffusion<br>
+        <div class="ibox" style="font-size:10px;padding:8px 10px;margin-bottom:6px">
+          <b>⚡ Puter.js — 無限免費</b><br>
+          無需任何 Key，原生 JS SDK 直接呼叫
         </div>
-        <div class="ibox o" style="font-size:10px;padding:8px 10px;margin-top:6px">
-          <b>⚠ 必須用伺服器開啟（否則 CORS 錯誤）</b><br>
-          VSCode → 安裝 Live Server 擴充套件<br>
-          → 右鍵 HTML → <b>Open with Live Server</b><br>
-          不能直接雙擊開啟 HTML 檔案
+        <div class="ibox o" style="font-size:10px;padding:8px 10px">
+          <b>⚠ 需用 Live Server 開啟</b><br>
+          VSCode → 右鍵 HTML → Open with Live Server<br>
+          GitHub Pages / 直接雙擊都無法使用
         </div>
       </div>
 
-      <!-- Pixazo AI config -->
-      <div class="api-cfg" id="cfg-pixazo">
-        <div class="ibox g" style="font-size:10px;padding:8px 10px;margin-bottom:8px">
-          <b>🎨 Pixazo AI</b><br>
-          免費 Key 可用 Flux Schnell / SDXL / SD<br>
-          無需信用卡，免費額度高
-        </div>
-        <label style="font-size:10px;color:var(--mu);display:block;margin-bottom:5px">Pixazo API Key（免費申請）</label>
-        <input class="api-input" type="password" id="pixazo-key" placeholder="免費申請後貼入"
-          style="width:100%;padding:7px 10px;border-radius:7px;background:var(--sf);border:1px solid var(--bd);color:var(--tx);font-family:'DM Mono',monospace;font-size:11px;outline:none">
-        <div style="font-size:10px;color:var(--mu2);margin-top:5px;line-height:1.7">
-          免費取得：<a href="https://www.pixazo.ai/models/free-api" target="_blank" style="color:var(--purple);text-decoration:none">pixazo.ai/models/free-api</a><br>
-          不填也會嘗試 → 失敗自動切 HuggingFace
-        </div>
-      </div>
+      <!-- Pixazo AI config - removed, CORS blocked -->
+      <div class="api-cfg" id="cfg-pixazo" style="display:none"></div>
 
       <!-- HF config -->
       <div class="api-cfg" id="cfg-hf">
@@ -582,7 +576,7 @@ var PI=Math.PI, PI2=PI*2, HPI=PI/2;
 // ══════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════
-var mode='ai', eng='cf';
+var mode='ai', eng='pollinations';
 var srcData=null, srcW=0, srcH=0;
 var bgData=null, equirectData=null, sceneInfo=null;
 var vrLon=0, vrLat=0, vrFov=75, vrSpd=1;
@@ -674,8 +668,9 @@ document.querySelectorAll('.vtab').forEach(function(t){
   if(host.includes('github.io')||host.includes('github.com')){
     var notice=document.getElementById('ghpages-notice');
     if(notice) notice.style.display='block';
-    // Auto-select Cloudflare as it's the only one that works
-    selectEng('cf');
+    // Auto-select Pollinations — works from any origin
+    selectEng('pollinations');
+    eng='pollinations';
   }
 })();
 
@@ -691,7 +686,7 @@ function setMode(m){
 function selectEng(e){
   eng=e;
   document.querySelectorAll('.eng-btn').forEach(function(b){ b.classList.toggle('on',b.dataset.eng===e); });
-  ['hf','together','cf','puter','pixazo'].forEach(function(id){
+  ['hf','together','cf','puter','pixazo','pollinations'].forEach(function(id){
     var el=document.getElementById('cfg-'+id);
     if(el) el.classList.toggle('show', id===e);
   });
@@ -879,6 +874,49 @@ async function generateWithPixazo(prompt){
   throw new Error('Pixazo 無回應，請改用 ☁️ Cloudflare 引擎');
 }
 
+// ══════════════════════════════════════════════════
+//  IMAGE GENERATION — Pollinations.ai
+//  完全免費，無 Key，無 CORS，GitHub Pages 可用
+//  原理：直接用 <img src="url"> 取得圖片，不走 fetch
+// ══════════════════════════════════════════════════
+async function generateWithPollinations(prompt){
+  setStep(2,'active','Pollinations 🌸 生成中… (約5-15s)');
+
+  var encoded=encodeURIComponent(prompt);
+  // 加隨機 seed 避免快取
+  var seed=Math.floor(Math.random()*99999);
+  var url='https://image.pollinations.ai/prompt/'+encoded
+    +'?width=1024&height=512&seed='+seed+'&nologo=true&model=flux';
+
+  // 用 Image 元素載入（無 CORS 限制）
+  return await new Promise(function(resolve,reject){
+    var img=new Image();
+    img.crossOrigin=''; // 試試看，失敗也沒關係
+    var timer=setTimeout(function(){ reject(new Error('Pollinations 逾時（30s）')); },30000);
+    img.onload=function(){
+      clearTimeout(timer);
+      // 用 canvas 轉成 blob URL
+      var c=document.createElement('canvas');
+      c.width=img.naturalWidth||1024;
+      c.height=img.naturalHeight||512;
+      try {
+        c.getContext('2d').drawImage(img,0,0);
+        c.toBlob(function(blob){
+          resolve(URL.createObjectURL(blob));
+        },'image/jpeg',0.92);
+      } catch(taint){
+        // canvas tainted，直接用 URL
+        resolve(url);
+      }
+    };
+    img.onerror=function(){
+      clearTimeout(timer);
+      reject(new Error('Pollinations 載入失敗'));
+    };
+    img.src=url;
+  });
+}
+
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
 // ── b64 → Blob URL，自動偵測 JPEG/PNG/WebP MIME ──
@@ -1036,6 +1074,8 @@ async function runAIPipeline(imgEl){
       imgUrl=await generateWithPuter(fullPrompt);
     } else if(eng==='pixazo'){
       imgUrl=await generateWithPixazo(fullPrompt);
+    } else if(eng==='pollinations'){
+      imgUrl=await generateWithPollinations(fullPrompt);
     } else {
       imgUrl=await generateWithTogether(fullPrompt);
     }
